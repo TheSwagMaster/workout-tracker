@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#131110"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Workouts"><title>Workout Tracker</title>
 <style>
-:root{--g:rgba(255,255,255,.09);--b:rgba(255,255,255,.2);--t:#f4f6ff;--m:#a9b0cc}
+:root{--g:rgba(255,240,225,.06);--b:rgba(255,235,215,.14);--t:#f3ede6;--m:#a39a90}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font:16px/1.4 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--t);background:#0b1020;min-height:100vh;padding-top:env(safe-area-inset-top)}
-.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(500px 420px at 12% 8%,#5b6cffaa,transparent),radial-gradient(520px 520px at 95% 30%,#ff5fa355,transparent),radial-gradient(640px 520px at 25% 100%,#22d3c455,transparent),#0b1020}
+body{margin:0;font:16px/1.4 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--t);background:#131110;min-height:100vh;padding-top:env(safe-area-inset-top)}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(520px 420px at 10% 0%,#c8643f2e,transparent),radial-gradient(560px 520px at 100% 45%,#8a5a3024,transparent),#131110}
 main{max-width:640px;margin:auto;padding:16px 14px 120px}
-.glass{background:var(--g);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--b);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 32px rgba(0,0,0,.3)}
+.glass{background:var(--g);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--b);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,235,215,.2),0 10px 32px rgba(0,0,0,.3)}
 .card{padding:16px;margin:0 0 14px}
 button,input,select{font:inherit;color:inherit}
 button{background:var(--g);border:1px solid var(--b);border-radius:14px;padding:10px 14px;min-height:44px;cursor:pointer}
-button.p{background:linear-gradient(135deg,#6d8bff,#a46bff);border:0;font-weight:600}
+button.p{background:linear-gradient(135deg,#e39a6e,#c4623a);color:#1a110c;border:0;font-weight:600}
 input,select{background:rgba(255,255,255,.08);border:1px solid var(--b);border-radius:12px;padding:10px;min-height:44px;width:100%}
 select option{color:#000}
 nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;max-width:616px;margin:auto;padding:6px;gap:4px}
@@ -27,6 +27,12 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .set.t{grid-template-columns:24px 1fr 44px}
 .tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
 .item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+[data-a]{cursor:pointer;touch-action:manipulation}
+.grp{border-top:1px solid rgba(255,255,255,.1);padding:8px 0}
+.hd{color:var(--m);font-size:12px;margin-top:10px}
+.big{font-size:18px;font-weight:600;padding:2px 0}
+.ch{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.ch .tag{font-size:14px;padding:4px 10px}
+.dn{opacity:.55}
 </style></head><body><div class="bg"></div><div id="app"></div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -115,7 +121,7 @@ let S={ex:[],pr:[],act:null,tab:'train',view:null,u:null,q:'',f:'all',sets:[],la
 const exOf=id=>S.ex.find(x=>x.id===id),prog=()=>S.pr.find(p=>p.id===S.act)||S.pr[0];
 const el=()=>T.acc+(T.st?Date.now()-T.st:0),pause=()=>{if(T.st){T.acc+=Date.now()-T.st;T.st=null}};
 const fm=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
-const fs=s=>s.s!=null?s.s+'s':s.r+(s.kg?'×'+s.kg+'kg':' reps');
+const fs=s=>s.s!=null?`${s.s} s`:`${s.r} × ${s.kg?s.kg+' kg':'BW'}`;
 const fd=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 
 async function load(){
@@ -139,8 +145,10 @@ async function seed(){
 const head=(t,back)=>`<div class="row" style="margin-bottom:14px">${back?'<button data-a="back">‹</button>':''}<h1 style="flex:1">${t}</h1>${back?'':'<button data-a="out" class="s">Sign out</button>'}</div>`;
 const login=()=>`<main style="padding-top:18vh"><div class="glass card"><h1>Workout Tracker</h1><p class="s">Sign in to your account.</p><input id="em" type="email" placeholder="Email" autocomplete="username"><div style="height:8px"></div><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div style="height:12px"></div><button class="p" data-a="login" style="width:100%">Sign in</button><p class="s" id="er"></p></div></main>`;
 const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).join('');
-function catCard(P,c){return `<div class="glass card"><div class="row"><h2 style="flex:1">${c.toUpperCase()} BODY</h2><button class="p" data-a="start" data-c="${c}">Start</button></div>`+
- P[c].map((id,i)=>{const e=exOf(id);return `<div class="row item"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${i}">↑</button><button data-a="rm" data-c="${c}" data-i="${i}">✕</button></div>`}).join('')+
+const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
+const groups=(P,c)=>{let i=0;return gz(P,c).map(k=>{const g=P[c].slice(i,i+k);i+=k;return g})};
+function catCard(P,c){let i=0;return `<div class="glass card"><div class="row"><h2 style="flex:1">${c.toUpperCase()} BODY</h2><button class="p" data-a="start" data-c="${c}">Start</button></div>`+
+ gz(P,c).map((k,gi)=>{const b=i;i+=k;return `<div class="grp">${k>1?'<div class="s">Superset '+(gi+1)+'</div>':''}`+P[c].slice(b,b+k).map((id,j)=>{const e=exOf(id);return `<div class="row" style="padding:3px 0"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${b+j}">↑</button><button data-a="rm" data-c="${c}" data-i="${b+j}">✕</button></div>`}).join('')+`</div>`}).join('')+
  `<div class="row item"><select id="add-${c}"><option value="">Add an exercise…</option>${opts()}</select><button data-a="add" data-c="${c}">Add</button></div></div>`}
 function train(){
  const P=prog();
@@ -153,40 +161,42 @@ const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search in English 
 <details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><input id="n-fr" placeholder="French name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
 const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?soon('Statistics','Phase 3'):soon('AI Coach','Phase 4');
-const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+`<div class="glass card">`+P[W.cat].map(id=>{const e=exOf(id);return `<div class="row item" data-a="open" data-id="${id}"><div style="flex:1">${esc(e.nameEn)}</div><span>${W.done[id]?'✓':'›'}</span></div>`}).join('')+`</div><button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
-function exView(){const e=exOf(S.view.ex),t=e.type=='time';
- return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)}</p><div class="glass card"><div class="s">${S.last?'Last time ('+fd(S.last.date)+'): '+S.last.sets.map(fs).join(', '):'No previous record.'}</div><div style="height:8px"></div>`+
- S.sets.map((s,i)=>`<div class="set ${t?'t':''}"><span class="s">${i+1}</span>${t?`<input type="number" inputmode="numeric" placeholder="seconds" value="${s.s??''}" data-i="${i}" data-f="s">`:`<input type="number" inputmode="numeric" placeholder="reps" value="${s.r??''}" data-i="${i}" data-f="r"><input type="number" inputmode="decimal" placeholder="kg" value="${s.kg??''}" data-i="${i}" data-f="kg">`}<button data-a="delset" data-i="${i}">✕</button></div>`).join('')+
- `<button data-a="addset" style="width:100%;margin-top:6px">Add set</button></div><div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div><button class="p" data-a="save" style="width:100%">Save exercise</button>`}
-function hist(){const e=exOf(S.view.hist);return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)}</p><div class="glass card">`+(S.h.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="s">${l.sets.map(fs).join(' · ')}${l.duration?' · '+fm(l.duration*1000):''}</div></div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
+const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
+function exView(){const ids=S.view.ex;
+ return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
+ return `<div class="glass card"><div class="big">${esc(e.nameEn)}</div><div class="s">${esc(e.nameFr)}</div><div class="s">${L===undefined?'Loading…':L?'Last time ('+fd(L.date)+'): '+L.sets.map(fs).join(' · '):'No previous record.'}</div><div class="set hd ${t?'t':''}"><span>Set</span>${t?'<span>Seconds</span>':'<span>Reps</span><span>Kg</span>'}<span></span></div>`+
+ S.sets[id].map((s,i)=>`<div class="set ${t?'t':''}"><span class="s">${i+1}</span>${t?`<input type="number" inputmode="numeric" placeholder="sec" value="${s.s??''}" data-x="${id}" data-i="${i}" data-f="s">`:`<input type="number" inputmode="numeric" placeholder="reps" value="${s.r??''}" data-x="${id}" data-i="${i}" data-f="r"><input type="number" inputmode="decimal" placeholder="BW" value="${s.kg||''}" data-x="${id}" data-i="${i}" data-f="kg">`}<button data-a="delset" data-x="${id}" data-i="${i}">✕</button></div>`).join('')+
+ `<button data-a="addset" data-x="${id}" style="width:100%;margin-top:6px">Add set</button></div>`}).join('')+
+ `<div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div><button class="p" data-a="save" style="width:100%">Save ${ids.length>1?'superset':'exercise'}</button>`}
+function hist(){const e=exOf(S.view.hist);return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)}</p><div class="glass card">`+(S.h.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="ch">${l.sets.map(x=>`<span class="tag">${fs(x)}</span>`).join('')}</div>${l.duration?`<div class="s">Time: ${fm(l.duration*1000)}</div>`:''}</div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
 const nav=()=>`<nav class="glass">${[['train','🏋️','Training'],['ex','📖','Exercises'],['st','📈','Statistics'],['ai','✨','AI Coach']].map(([k,i,l])=>`<button data-a="tab" data-t="${k}" class="${S.tab==k&&!S.view?'on':''}">${i}<br>${l}</button>`).join('')}</nav>`;
 function R(){const a=$('#app');if(!S.u){a.innerHTML=login();return}
  const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()}
 
 /* ---------- Actions ---------- */
-const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c]}).catch(e=>alert(e.message));
+const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c],[c+'G']:gz(P,c)}).catch(e=>alert(e.message));
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
  out:()=>signOut(auth),
  tab:d=>{S.tab=d.t;S.view=null;R()},
  seed:()=>seed().catch(e=>alert(e.message)),
  mv:d=>{const P=prog(),i=+d.i;if(i>0){[P[d.c][i-1],P[d.c][i]]=[P[d.c][i],P[d.c][i-1]];saveP(P,d.c);R()}},
- rm:d=>{if(confirm('Remove this exercise from the program? Your history is kept.')){const P=prog();P[d.c].splice(+d.i,1);saveP(P,d.c);R()}},
- add:d=>{const v=$('#add-'+d.c).value;if(v){const P=prog();P[d.c].push(v);saveP(P,d.c);R()}},
+ rm:d=>{if(!confirm('Remove this exercise from the program? Your history is kept.'))return;const P=prog(),c=d.c,n=+d.i,G=gz(P,c).slice();let a=0;for(let g=0;g<G.length;g++){if(n<a+G[g]){G[g]--;if(!G[g])G.splice(g,1);break}a+=G[g]}P[c].splice(n,1);P[c+'G']=G;saveP(P,c);R()},
+ add:d=>{const v=$('#add-'+d.c).value;if(v){const P=prog(),G=gz(P,d.c).slice();G.push(1);P[d.c+'G']=G;P[d.c].push(v);saveP(P,d.c);R()}},
  start:d=>{W={cat:d.c,pid:prog().id,done:{},ref:null,made:false};S.view={ses:1};R()},
- open:async d=>{const e=exOf(d.id),L=await logs(d.id);S.last=L[0]||null;S.sets=L[0]?L[0].sets.map(s=>({...s})):[e.type=='time'?{s:''}:{r:'',kg:''}];T={acc:0,st:null};S.view={ex:d.id};R()},
- addset:()=>{const l=S.sets[S.sets.length-1];S.sets.push(l?{...l}:{r:'',kg:''});R()},
- delset:d=>{S.sets.splice(+d.i,1);R()},
+ open:d=>{const ids=d.ids.split(',');S.last={};S.sets={};S.dirty=0;ids.forEach(id=>S.sets[id]=[exOf(id).type=='time'?{s:''}:{r:'',kg:''}]);T={acc:0,st:null};const v=S.view={ex:ids};R();
+  ids.forEach(async id=>{const L=(await logs(id))[0];if(S.view!==v)return;S.last[id]=L||null;if(L&&!S.dirty)S.sets[id]=L.sets.map(s=>({...s}));if(!S.dirty)R()})},
+ addset:d=>{S.dirty=1;const a=S.sets[d.x],l=a[a.length-1];a.push(l?{...l}:{r:'',kg:''});R()},
+ delset:d=>{S.dirty=1;S.sets[d.x].splice(+d.i,1);R()},
  tgl:()=>{if(T.st)pause();else T.st=Date.now();R()},
  stp:()=>{pause();R()},
- save:()=>{const e=exOf(S.view.ex);pause();
-  const sets=S.sets.map(s=>e.type=='time'?{s:+s.s}:{r:+s.r,kg:+s.kg||0}).filter(s=>s.s>0||s.r>0);
-  if(!sets.length)return alert('Add at least one set.');
-  const now=new Date().toISOString();
+ save:()=>{pause();const now=new Date().toISOString(),out=[];
+  S.view.ex.forEach(id=>{const t=exOf(id).type=='time',sets=S.sets[id].map(s=>t?{s:+s.s}:{r:+s.r,kg:+s.kg||0}).filter(s=>s.s>0||s.r>0);if(sets.length)out.push([id,sets])});
+  if(!out.length)return alert('Add at least one set.');
   if(!W.ref)W.ref=doc(col('workouts'));
   if(!W.made){setDoc(W.ref,{date:now,programId:W.pid,category:W.cat}).catch(e=>alert(e.message));W.made=true}
-  setDoc(doc(col('exercise_logs')),{exerciseId:e.id,workoutId:W.ref.id,date:now,sets,duration:Math.round(el()/1000)}).catch(e=>alert(e.message));
-  W.done[e.id]=1;S.view={ses:1};R()},
+  out.forEach(([id,sets])=>{setDoc(doc(col('exercise_logs')),{exerciseId:id,workoutId:W.ref.id,date:now,sets,duration:Math.round(el()/1000),superset:S.view.ex.length>1}).catch(e=>alert(e.message));W.done[id]=1});
+  S.view={ses:1};R()},
  fin:()=>{W=null;S.view=null;S.tab='train';R()},
  back:()=>{const v=S.view;if(v.ex)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;S.view=null}R()},
  hist:async d=>{S.h=await logs(d.id);S.view={hist:d.id};R()},
@@ -196,7 +206,7 @@ const A={
   await setDoc(doc(col('exercises')),{nameEn:en,nameFr:$('#n-fr').value.trim()||en,type:$('#n-t').value,equipment:$('#n-e').value=='1'});await load();R()}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
-document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f)S.sets[+d.i][d.f]=e.target.value;if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
 document.addEventListener('change',e=>{if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
 setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el())},300);
 onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R()});
