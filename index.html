@@ -160,7 +160,31 @@ const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||
 const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search in English or French" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
 <details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><input id="n-fr" placeholder="French name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
-const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?soon('Statistics','Phase 3'):soon('AI Coach','Phase 4');
+async function loadSt(){try{const[a,b]=await Promise.all([getDocs(col('workouts')),getDocs(col('exercise_logs'))]);S.ws=a.docs.map(d=>d.data());S.lg=b.docs.map(d=>d.data());if(S.tab=='st'&&!S.view)R()}catch(e){alert('Could not load statistics: '+e.message)}}
+const wk=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime()};
+const chart=pts=>{if(pts.length<2)return '<div class="s">Log at least 2 sessions in this period to see a chart.</div>';const mx=Math.max(...pts),mn=Math.min(...pts),xy=pts.map((v,i)=>[12+i*276/(pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);return `<svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#e39a6e" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#e39a6e"/>`).join('')}</svg>`};
+function stats(){
+ if(!S.ws)return head('Statistics')+'<div class="glass card"><p class="s">Loading…</p></div>';
+ const days=S.sp??30,now=Date.now(),cut=days?new Date(now-days*864e5).toISOString():'',inP=l=>l.date>=cut,ws=S.ws.filter(inP),lg=S.lg.filter(inP);
+ const w0=wk(now),m0=new Date(new Date().getFullYear(),new Date().getMonth(),1).toISOString();
+ const nW=S.ws.filter(w=>wk(w.date)>=w0).length,nM=S.ws.filter(w=>w.date>=m0).length;
+ const span=days||Math.max(7,Math.ceil((now-Math.min(now,...S.ws.map(w=>new Date(w.date).getTime())))/864e5)),avg=(ws.length/(span/7)).toFixed(1);
+ const vol=Math.round(lg.reduce((a,l)=>a+l.sets.reduce((b,x)=>b+(x.kg>0?x.r*x.kg:0),0),0));
+ const W8=Array.from({length:8},(_,i)=>wk(w0-(7-i)*6048e5+432e5)),cnt=W8.map(t=>S.ws.filter(w=>wk(w.date)==t).length),mx=Math.max(1,...cnt);
+ const a4=cnt.slice(4).reduce((a,b)=>a+b,0),b4=cnt.slice(0,4).reduce((a,b)=>a+b,0),tr=a4>b4?'Up':a4<b4?'Down':'Steady';
+ const bars=cnt.map((c,i)=>{const h=c/mx*45,d=new Date(W8[i]);return `<rect x="${12+i*36}" y="${58-h}" width="28" height="${h}" rx="6" fill="#e39a6e" opacity=".85"/><text x="${26+i*36}" y="${52-h}" text-anchor="middle" font-size="10" fill="#f3ede6">${c}</text><text x="${26+i*36}" y="72" text-anchor="middle" font-size="9" fill="#a39a90">${d.getDate()}/${d.getMonth()+1}</text>`}).join('');
+ const ids=[...new Set(S.lg.map(l=>l.exerciseId))].filter(exOf).sort((x,y)=>exOf(x).nameEn.localeCompare(exOf(y).nameEn)),sel=ids.includes(S.sel)?S.sel:ids[0];
+ let prog='<p class="s">Log a workout to see your progress.</p>';
+ if(sel){const e=exOf(sel),t=e.type=='time',all=S.lg.filter(l=>l.exerciseId==sel),hw=all.some(l=>l.sets.some(x=>x.kg>0)),u=t?'s':hw?'kg':'reps',sets=all.flatMap(l=>l.sets);
+  const pts=lg.filter(l=>l.exerciseId==sel).sort((x,y)=>x.date.localeCompare(y.date)).map(l=>Math.max(...l.sets.map(x=>t?x.s:hw?(x.kg||0):x.r)));
+  const e1=hw?Math.round(Math.max(...sets.filter(x=>x.kg>0).map(x=>x.kg*(1+x.r/30)))):0,cell=(v,l)=>`<div style="flex:1"><div class="big">${v}</div><div class="s">${l}</div></div>`;
+  prog=`<select id="ss">${ids.map(id=>`<option value="${id}" ${id==sel?'selected':''}>${esc(exOf(id).nameEn)}</option>`).join('')}</select><div class="s" style="margin:12px 0 4px">Top ${t?'time':hw?'weight':'reps'} per session</div>${chart(pts)}<div class="row" style="text-align:center;margin-top:10px">${t?cell(Math.max(...sets.map(x=>x.s))+' s','Best time'):hw?cell(Math.max(...sets.map(x=>x.kg||0))+' kg','Best weight')+cell(Math.max(...sets.map(x=>x.r))+' reps','Best reps')+cell(e1+' kg','Est. 1RM'):cell(Math.max(...sets.map(x=>x.r))+' reps','Best reps')}</div><button data-a="hist" data-id="${sel}" style="width:100%;margin-top:12px">Open exercise sheet</button>`}
+ const cell=(v,l)=>`<div style="flex:1"><div class="big">${v}</div><div class="s">${l}</div></div>`;
+ return head('Statistics')+`<div class="row" style="margin-bottom:12px;flex-wrap:wrap">${[[30,'30 days'],[90,'3 months'],[180,'6 months'],[365,'1 year'],[0,'All']].map(([k,l])=>`<button data-a="sp" data-k="${k}" class="${days==k?'p':''}">${l}</button>`).join('')}</div>`+
+ `<div class="glass card"><div class="row" style="text-align:center">${cell(nW,'This week')}${cell(nM,'This month')}${cell(avg,'Per week')}</div><div class="s" style="margin-top:10px">${ws.length} sessions in this period · ${vol} kg lifted (weighted sets only, bodyweight sets not counted)</div></div>`+
+ `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" style="width:100%">${bars}</svg></div>`+
+ `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`}
+const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():soon('AI Coach','Phase 4');
 const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
 function exView(){const ids=S.view.ex;
  return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
@@ -186,7 +210,8 @@ async function mk(name,u,l,ug,lg){const r=doc(col('programs'));await setDoc(r,{n
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
  out:()=>signOut(auth),
- tab:d=>{S.tab=d.t;S.view=null;R()},
+ tab:d=>{S.tab=d.t;S.view=null;R();if(d.t=='st')loadSt()},
+ sp:d=>{S.sp=+d.k;R()},
  seed:()=>seed().catch(e=>alert(e.message)),
  mv:d=>{const P=prog(),i=+d.i;if(i>0){[P[d.c][i-1],P[d.c][i]]=[P[d.c][i],P[d.c][i-1]];saveP(P,d.c);R()}},
  rm:d=>{if(!confirm('Remove this exercise from the program? Your history is kept.'))return;const P=prog(),c=d.c,n=+d.i,G=gz(P,c).slice();let a=0;for(let g=0;g<G.length;g++){if(n<a+G[g]){G[g]--;if(!G[g])G.splice(g,1);break}a+=G[g]}P[c].splice(n,1);P[c+'G']=G;saveP(P,c);R()},
@@ -221,7 +246,7 @@ const A={
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
 document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
-document.addEventListener('change',e=>{if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
+document.addEventListener('change',e=>{if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
 setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el())},300);
 onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R()});
 </script></body></html>
