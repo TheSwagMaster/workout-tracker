@@ -29,6 +29,16 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
 .item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 [data-a]{cursor:pointer;touch-action:manipulation}
+:root{--sh:#26211e}
+html[data-th=light]{--g:rgba(255,255,255,.7);--b:rgba(70,45,25,.16);--t:#2a211b;--m:#7d6e62;--sh:#fffaf5;color-scheme:light}
+html[data-th=light] body{background:#f4efe9}
+html[data-th=light] .bg{background:radial-gradient(520px 420px at 10% 0%,#e39a6e40,transparent),radial-gradient(560px 520px at 100% 45%,#c4623a1f,transparent),#f4efe9}
+html[data-th=light] .glass{box-shadow:inset 0 1px 0 #fff,0 8px 24px rgba(90,60,40,.12)}
+html[data-th=light] input,html[data-th=light] select{background:rgba(0,0,0,.05)}
+html[data-th=light] nav button.on{background:rgba(0,0,0,.08)}
+html[data-th=light] .item,html[data-th=light] .grp,html[data-th=light] .grp2{border-color:rgba(0,0,0,.1)}
+html[data-th=light] .tag{background:rgba(0,0,0,.07)}
+.sheet{position:fixed;z-index:21;left:12px;right:12px;top:12vh;max-width:420px;margin:auto;padding:18px;background:var(--sh)}
 .ic{min-height:36px;min-width:36px;padding:0 10px;border:0;background:none;color:var(--m)}
 .ghost{background:none;border:0;color:var(--m);min-height:36px;padding:0 4px;font-size:14px}
 .grp2{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
@@ -38,7 +48,7 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .drg{opacity:.35}.tgt{box-shadow:0 -2px 0 #e39a6e}
 .mn{position:relative}.mn summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;border:1px solid var(--b);background:var(--g);font-size:20px}
 .mn summary::-webkit-details-marker{display:none}
-.menu{position:absolute;right:0;top:50px;z-index:5;padding:6px;min-width:180px;background:#26211e}
+.menu{position:absolute;right:0;top:50px;z-index:5;padding:6px;min-width:180px;background:var(--sh)}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none}
 .grp{border-top:1px solid rgba(255,255,255,.1);padding:8px 0}
 .hd{color:var(--m);font-size:12px;margin-top:10px}
@@ -134,7 +144,7 @@ const exOf=id=>S.ex.find(x=>x.id===id),prog=()=>S.pr.find(p=>p.id===S.act)||S.pr
 const el=()=>T.acc+(T.st?Date.now()-T.st:0),pause=()=>{if(T.st){T.acc+=Date.now()-T.st;T.st=null}};
 const fm=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 const fs=s=>s.s!=null?`${s.s} s`:`${s.r} × ${s.kg?s.kg+' kg':'BW'}`;
-const fd=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const fd=d=>new Date(d).toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric'});
 
 async function load(){
  const [a,b,c]=await Promise.all([getDocs(col('exercises')),getDocs(col('programs')),getDoc(doc(db,'user_settings','main'))]);
@@ -154,7 +164,7 @@ async function seed(){
 }
 
 /* ---------- Views ---------- */
-const head=(t,back)=>`<div class="row" style="margin-bottom:14px">${back?'<button data-a="back">‹</button>':''}<h1 style="flex:1">${t}</h1>${back?'':'<button data-a="out" class="s">Sign out</button>'}</div>`;
+const head=(t,back)=>`<div class="row" style="margin-bottom:14px">${back?'<button data-a="back">‹</button>':''}<h1 style="flex:1">${t}</h1>${back?'':'<button data-a="cog" class="ic" style="font-size:24px">⚙</button>'}</div>`;
 const login=()=>`<main style="padding-top:18vh"><div class="glass card"><h1>Workout Tracker</h1><p class="s">Sign in to your account.</p><input id="em" type="email" placeholder="Email" autocomplete="username"><div style="height:8px"></div><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div style="height:12px"></div><button class="p" data-a="login" style="width:100%">Sign in</button><p class="s" id="er"></p></div></main>`;
 const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).join('');
 const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
@@ -177,8 +187,8 @@ function train(){
  if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
  return head('Training')+`<div class="row" style="margin-bottom:14px"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary>⋯</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
-const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&e.nameEn.toLowerCase().includes(q));
- return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.muscles||'')}${e.type=='time'?(e.muscles?' · ':'')+'Timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
+const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&(e.nameEn+' '+(S.lang=='fr'?e.nameFr:'')).toLowerCase().includes(q));
+ return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s"><span>${esc(e.muscles||'')}</span>${e.type=='time'?'<span> · Timed</span>':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
 const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search exercises" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
 <details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
@@ -194,7 +204,7 @@ function stats(){
  const vol=Math.round(lg.reduce((a,l)=>a+l.sets.reduce((b,x)=>b+(x.kg>0?x.r*x.kg:0),0),0));
  const W8=Array.from({length:8},(_,i)=>wk(w0-(7-i)*6048e5+432e5)),cnt=W8.map(t=>S.ws.filter(w=>wk(w.date)==t).length),mx=Math.max(1,...cnt);
  const a4=cnt.slice(4).reduce((a,b)=>a+b,0),b4=cnt.slice(0,4).reduce((a,b)=>a+b,0),tr=a4>b4?'Up':a4<b4?'Down':'Steady';
- const bars=cnt.map((c,i)=>{const h=c/mx*45,d=new Date(W8[i]);return `<rect x="${12+i*36}" y="${58-h}" width="28" height="${h}" rx="6" fill="#e39a6e" opacity=".85"/><text x="${26+i*36}" y="${52-h}" text-anchor="middle" font-size="10" fill="#f3ede6">${c}</text><text x="${26+i*36}" y="72" text-anchor="middle" font-size="9" fill="#a39a90">${d.getDate()}/${d.getMonth()+1}</text>`}).join('');
+ const bars=cnt.map((c,i)=>{const h=c/mx*45,d=new Date(W8[i]);return `<rect x="${12+i*36}" y="${58-h}" width="28" height="${h}" rx="6" fill="#e39a6e" opacity=".85"/><text x="${26+i*36}" y="${52-h}" text-anchor="middle" font-size="10" fill="currentColor">${c}</text><text x="${26+i*36}" y="72" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${d.getDate()}/${d.getMonth()+1}</text>`}).join('');
  const ids=[...new Set(S.lg.map(l=>l.exerciseId))].filter(exOf).sort((x,y)=>exOf(x).nameEn.localeCompare(exOf(y).nameEn)),sel=ids.includes(S.sel)?S.sel:ids[0];
  let prog='<p class="s">Log a workout to see your progress.</p>';
  if(sel){const e=exOf(sel),t=e.type=='time',all=S.lg.filter(l=>l.exerciseId==sel),hw=all.some(l=>l.sets.some(x=>x.kg>0)),u=t?'s':hw?'kg':'reps',sets=all.flatMap(l=>l.sets);
@@ -228,13 +238,13 @@ function hist(){const e=exOf(S.view.hist),t=e.type=='time',L=S.h,hw=L.some(l=>l.
  const m=l=>Math.max(...l.sets.map(x=>t?x.s:hw?(x.kg||0):x.r)),pts=L.slice().reverse().map(m),mx=Math.max(0,...pts),mn=Math.min(...pts);
  const xy=pts.map((v,i)=>[12+i*276/Math.max(1,pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);
  const used=S.pr.filter(p=>p.upper.includes(e.id)||p.lower.includes(e.id)).map(p=>esc(p.name)).join(', ');
- const sd=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+ const sd=d=>new Date(d).toLocaleDateString(LOC(),{day:'numeric',month:'short'});
  return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px"><button data-a="ren" data-id="${e.id}">Rename</button></p>${tipsHtml(e,1)}<div class="glass card"><div class="row" style="text-align:center"><div style="flex:1"><div class="big">${L.length}</div><div class="s">Sessions</div></div><div style="flex:1"><div class="big">${L.length?mx+' '+u:'–'}</div><div class="s">Best</div></div><div style="flex:1"><div class="big">${L.length?sd(L[0].date):'–'}</div><div class="s">Last</div></div></div>`+
  (pts.length>1?`<div class="s" style="margin-top:12px">Top ${t?'time':hw?'weight':'reps'} per session</div><svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#e39a6e" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#e39a6e"/>`).join('')}</svg>`:'<div class="s" style="margin-top:12px">Log at least 2 sessions to see a chart.</div>')+
  `<div class="s">Used in: ${used||'no program'}</div></div><div class="glass card">`+(L.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="ch">${l.sets.map(x=>`<span class="tag">${fs(x)}</span>`).join('')}</div><div class="s">${hw?'Volume: '+l.sets.reduce((a,x)=>a+x.r*x.kg,0)+' kg':''}${l.duration?' · Time: '+fm(l.duration*1000):''}</div></div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
 const nav=()=>`<nav class="glass">${[['train','🏋️','Training'],['ex','📖','Exercises'],['st','📈','Statistics'],['ai','✨','AI Coach']].map(([k,i,l])=>`<button data-a="tab" data-t="${k}" class="${S.tab==k&&!S.view?'on':''}">${i}<br>${l}</button>`).join('')}</nav>`;
-function R(){const a=$('#app');if(!S.u){a.innerHTML=login();return}
- const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()}
+function R(){const a=$('#app');if(!S.u){a.innerHTML=login();tr();return}
+ const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()+(S.cfg?sheet():'');tr()}
 
 /* ---------- Actions ---------- */
 const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c],[c+'G']:gz(P,c)}).catch(e=>alert(e.message));
@@ -264,9 +274,35 @@ async function genTips(){if(S.gen||!S.aiUrl)return;S.gen=1;S.sk=S.sk||{};
    const o={tips:x.tips.slice(0,3).map(String),tipsFr:(x.tipsFr||x.tips).slice(0,3).map(String),muscles:String(x.muscles||''),musclesFr:String(x.musclesFr||'')};if(x.fr&&e.nameFr==e.nameEn)o.nameFr=String(x.fr);
    await updateDoc(doc(db,'exercises',e.id),o);Object.assign(e,o)}
   if(!S.view&&S.tab=='ex')R()}}catch(e){}S.gen=0}
+/* ---------- Settings, theme, language ---------- */
+const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
+const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#f4efe9':'#131110'};
+S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
+const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
+const sheet=()=>`<div data-a="cog" style="position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45)"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button></div>`;
+const FR={'Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
+'Add at least one set.':'Ajoute au moins une série.','Enter an English name.':'Saisis un nom en anglais.','Enter the full https:// address.':'Saisis l’adresse complète en https://.','Exercise not found in your library.':'Exercice introuvable dans ta bibliothèque.','That exercise is not in the active program.':'Cet exercice n’est pas dans le programme actif.','This exercise already exists.':'Cet exercice existe déjà.','This name already exists.':'Ce nom existe déjà.','You need at least one program.':'Il faut au moins un programme.','Leave this workout? Saved exercises are kept.':'Quitter cette séance ? Les exercices enregistrés sont conservés.','Remove this exercise from the program? Your history is kept.':'Retirer cet exercice du programme ? Ton historique est conservé.','Name of the new program':'Nom du nouveau programme','New name':'Nouveau nom','Your tips, separated by |':'Tes conseils, séparés par |'};
+const RX=[[/^(\d+) exercises · (\d+) blocks ([▴▾])$/,'$1 exercices · $2 blocs $3'],
+[/^(\d+) sessions in this period · (\d+) kg lifted \(.*\)$/,'$1 séances sur la période · $2 kg soulevés (séries lestées uniquement, poids du corps non compté)'],
+[/^Sessions per week, last 8 weeks · (Up|Down|Steady) vs the previous 4 weeks$/,(m,a)=>`Séances par semaine, 8 dernières semaines · ${{Up:'en hausse',Down:'en baisse',Steady:'stable'}[a]} vs les 4 semaines précédentes`],
+[/^Top (time|weight|reps) per session$/,(m,a)=>`Meilleur ${{time:'temps',weight:'poids',reps:'nombre de reps'}[a]} par séance`],
+[/^Last time \((.*?)\): (.*)$/,'Dernière fois ($1) : $2'],[/^Used in: (.*)$/,'Utilisé dans : $1'],
+[/^(?:Volume: (\d+) kg)?\s*(?:·\s*)?(?:Time: (\S+))?$/,(m,a,b)=>[a?`Volume : ${a} kg`:'',b?`Durée : ${b}`:''].filter(Boolean).join(' · ')],
+[/^Delete the program "(.*)"\? Your workout history is kept\.$/,'Supprimer le programme « $1 » ? Ton historique est conservé.'],
+[/^Could not (delete|load data|load statistics): (.*)$/,'Action impossible : $2'],[/^Export failed: (.*)$/,'Échec de l’export : $1'],
+[/^⚠ The AI is unavailable \((\d+)\)\. Your tracking still works\.$/,'⚠ L’IA est indisponible ($1). Ton suivi continue de marcher.']];
+const exMap=()=>{const m={};S.ex.forEach(e=>{if(e.nameFr&&e.nameFr!=e.nameEn)m[e.nameEn]=e.nameFr;if(e.muscles&&e.musclesFr)m[e.muscles]=e.musclesFr;(e.tips||[]).forEach((t,i)=>{if(e.tipsFr&&e.tipsFr[i])m[t]=e.tipsFr[i]})});return m};
+const trs=(v,M)=>{const k=v.trim();if(!k)return v;const r=FR[k]??M[k];if(r)return v.replace(k,r);for(const[x,y]of RX)if(x.test(k)){const o=k.replace(x,y);return o?v.replace(k,o):v}return v};
+function tr(){if(S.lang!='fr')return;const M=exMap(),w=document.createTreeWalker($('#app'),NodeFilter.SHOW_TEXT);let n;while(n=w.nextNode()){const t=trs(n.nodeValue,M);if(t!==n.nodeValue)n.nodeValue=t}
+ document.querySelectorAll('#app [placeholder]').forEach(i=>{const t=trs(i.placeholder,M);if(t!==i.placeholder)i.placeholder=t})}
+const _a=window.alert.bind(window),_c=window.confirm.bind(window),_p=window.prompt.bind(window),T2=m=>S.lang=='fr'?trs(String(m),{}):m;
+window.alert=m=>_a(T2(m));window.confirm=m=>_c(T2(m));window.prompt=(m,d)=>_p(T2(m),d);
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
- out:()=>signOut(auth),
+ out:()=>{S.cfg=0;signOut(auth)},
+ cog:()=>{S.cfg=!S.cfg;R()},
+ lang:d=>{S.lang=d.l;LS('wt_lang',d.l);document.documentElement.lang=d.l;R()},
+ th:d=>{S.th=d.k;LS('wt_th',d.k);applyTh();R()},
  tab:d=>{S.tab=d.t;S.view=null;R();if(d.t=='st')loadSt()},
  sp:d=>{S.sp=+d.k;R()},
  demo:d=>window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(exOf(d.id).nameEn+' exercise how to'),'_blank','noopener'),
