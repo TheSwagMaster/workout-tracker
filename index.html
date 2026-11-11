@@ -38,7 +38,7 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {initializeFirestore,persistentLocalCache,collection,doc,getDocs,getDoc,setDoc,updateDoc,query,where,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {initializeFirestore,persistentLocalCache,collection,doc,getDocs,getDoc,setDoc,deleteDoc,updateDoc,query,where,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyA4rP3w3WcTYIDSfUw_py0Sa22EvDli2ao",authDomain:"personal-workout-tracker-ce007.firebaseapp.com",projectId:"personal-workout-tracker-ce007",storageBucket:"personal-workout-tracker-ce007.firebasestorage.app",messagingSenderId:"960475930805",appId:"1:960475930805:web:cde480d99a4b9dd6575efc"};
 const app=initializeApp(cfg),auth=getAuth(app),db=initializeFirestore(app,{localCache:persistentLocalCache()});
@@ -149,12 +149,12 @@ const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).
 const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
 const groups=(P,c)=>{let i=0;return gz(P,c).map(k=>{const g=P[c].slice(i,i+k);i+=k;return g})};
 function catCard(P,c){let i=0;return `<div class="glass card"><div class="row"><h2 style="flex:1">${c.toUpperCase()} BODY</h2><button class="p" data-a="start" data-c="${c}">Start</button></div>`+
- gz(P,c).map((k,gi)=>{const b=i;i+=k;return `<div class="grp">${k>1?'<div class="s">Superset '+(gi+1)+'</div>':''}`+P[c].slice(b,b+k).map((id,j)=>{const e=exOf(id);return `<div class="row" style="padding:3px 0"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${b+j}">↑</button><button data-a="rm" data-c="${c}" data-i="${b+j}">✕</button></div>`}).join('')+`</div>`}).join('')+
+ gz(P,c).map((k,gi)=>{const b=i;i+=k;return `<div class="grp">${k>1?'<div class="row"><div class="s" style="flex:1">Superset '+(gi+1)+'</div><button data-a="unl" data-c="'+c+'" data-g="'+gi+'">Unlink</button></div>':''}`+P[c].slice(b,b+k).map((id,j)=>{const e=exOf(id);return `<div class="row" style="padding:3px 0"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${b+j}">↑</button><button data-a="rm" data-c="${c}" data-i="${b+j}">✕</button></div>`}).join('')+`${k==1&&gz(P,c)[gi+1]==1?'<button data-a="lnk" data-c="'+c+'" data-g="'+gi+'" style="width:100%;margin-top:4px">⛓ Link with next as a superset</button>':''}</div>`}).join('')+
  `<div class="row item"><select id="add-${c}"><option value="">Add an exercise…</option>${opts()}</select><button data-a="add" data-c="${c}">Add</button></div></div>`}
 function train(){
  const P=prog();
  if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
- return head('Training')+`<select id="ps" style="margin-bottom:14px">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`+`<div class="row" style="margin-bottom:14px"><button data-a="dup" style="flex:1">Duplicate</button><button data-a="newp" style="flex:1">New</button><button data-a="renp" style="flex:1">Rename</button></div>`+catCard(P,'upper')+catCard(P,'lower');
+ return head('Training')+`<select id="ps" style="margin-bottom:14px">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`+`<div class="row" style="margin-bottom:14px"><button data-a="newp" style="flex:1">New</button><button data-a="renp" style="flex:1">Rename</button><button data-a="delp" style="flex:1">Delete</button></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
 const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&(e.nameEn+' '+e.nameFr).toLowerCase().includes(q));
  return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.nameFr)}${e.type=='time'?' · timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
@@ -184,7 +184,8 @@ function stats(){
  return head('Statistics')+`<div class="row" style="margin-bottom:12px;flex-wrap:wrap">${[[30,'30 days'],[90,'3 months'],[180,'6 months'],[365,'1 year'],[0,'All']].map(([k,l])=>`<button data-a="sp" data-k="${k}" class="${days==k?'p':''}">${l}</button>`).join('')}</div>`+
  `<div class="glass card"><div class="row" style="text-align:center">${cell(nW,'This week')}${cell(nM,'This month')}${cell(avg,'Per week')}</div><div class="s" style="margin-top:10px">${ws.length} sessions in this period · ${vol} kg lifted (weighted sets only, bodyweight sets not counted)</div></div>`+
  `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" style="width:100%">${bars}</svg></div>`+
- `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`}
+ `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`+
+ `<div class="glass card"><h2>Export your data</h2><div class="s" style="margin:4px 0 10px">JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.</div><div class="row"><button class="p" data-a="expj" style="flex:1">Export JSON</button><button data-a="expc" style="flex:1">Export CSV</button></div></div>`}
 const exByName=n=>S.ex.find(e=>e.nameEn.toLowerCase()==String(n).toLowerCase());
 async function ensure(n,nw){const f=exByName(n);if(f)return f.id;const x=(nw||[]).find(y=>String(y.en).toLowerCase()==String(n).toLowerCase())||{en:n},r=doc(col('exercises')),o={nameEn:x.en,nameFr:x.fr||x.en,type:x.type=='time'?'time':'reps',equipment:x.equipment!==false};await setDoc(r,o);S.ex.push({id:r.id,...o});return r.id}
 const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.lower]:[];
@@ -197,11 +198,11 @@ const ai=()=>!S.aiUrl?head('AI Coach')+`<div class="glass card"><p>Paste the add
 const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():ai();
 const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
 function exView(){const ids=S.view.ex;
- return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
+ return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+`<div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div>`+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
  return `<div class="glass card"><div class="big">${esc(e.nameEn)}</div><div class="s">${esc(e.nameFr)}</div><div class="s">${L===undefined?'Loading…':L?'Last time ('+fd(L.date)+'): '+L.sets.map(fs).join(' · '):'No previous record.'}</div><div class="set hd ${t?'t':''}"><span>Set</span>${t?'<span>Seconds</span>':'<span>Reps</span><span>Kg</span>'}<span></span></div>`+
  S.sets[id].map((s,i)=>`<div class="set ${t?'t':''}"><span class="s">${i+1}</span>${t?`<input type="number" inputmode="numeric" placeholder="sec" value="${s.s??''}" data-x="${id}" data-i="${i}" data-f="s">`:`<input type="number" inputmode="numeric" placeholder="reps" value="${s.r??''}" data-x="${id}" data-i="${i}" data-f="r"><input type="number" inputmode="decimal" placeholder="BW" value="${s.kg||''}" data-x="${id}" data-i="${i}" data-f="kg">`}<button data-a="delset" data-x="${id}" data-i="${i}">✕</button></div>`).join('')+
  `<button data-a="addset" data-x="${id}" style="width:100%;margin-top:6px">Add set</button></div>`}).join('')+
- `<div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div><button class="p" data-a="save" style="width:100%">Save ${ids.length>1?'superset':'exercise'}</button>`}
+ `<button class="p" data-a="save" style="width:100%">Save ${ids.length>1?'superset':'exercise'}</button>`}
 function hist(){const e=exOf(S.view.hist),t=e.type=='time',L=S.h,hw=L.some(l=>l.sets.some(x=>x.kg>0)),u=t?'s':hw?'kg':'reps';
  const m=l=>Math.max(...l.sets.map(x=>t?x.s:hw?(x.kg||0):x.r)),pts=L.slice().reverse().map(m),mx=Math.max(0,...pts),mn=Math.min(...pts);
  const xy=pts.map((v,i)=>[12+i*276/Math.max(1,pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);
@@ -217,11 +218,31 @@ function R(){const a=$('#app');if(!S.u){a.innerHTML=login();return}
 /* ---------- Actions ---------- */
 const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c],[c+'G']:gz(P,c)}).catch(e=>alert(e.message));
 async function mk(name,u,l,ug,lg){const r=doc(col('programs'));await setDoc(r,{name,order:Math.max(0,...S.pr.map(p=>p.order||0))+1,upper:u,lower:l,upperG:ug,lowerG:lg});await setDoc(doc(db,'user_settings','main'),{activeProgramId:r.id},{merge:true});await load();R()}
+/* ---------- Export ---------- */
+async function allData(){const n=['exercises','programs','workouts','exercise_logs','user_settings'],r=await Promise.all(n.map(c=>getDocs(col(c)))),o={};n.forEach((c,i)=>o[c]=r[i].docs.map(d=>({id:d.id,...d.data()})));return o}
+async function dl(name,text,mime){const f=new File([text],name,{type:mime});
+ if(/iPhone|iPad/.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]});return}catch(e){if(e.name=='AbortError')return}}
+ const u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+const today=()=>new Date().toISOString().slice(0,10);
+const cv=v=>{v=v??'';v=String(v);return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+function toCsv(D){const ex=Object.fromEntries(D.exercises.map(e=>[e.id,e])),pr=Object.fromEntries(D.programs.map(p=>[p.id,p])),wo=Object.fromEntries(D.workouts.map(w=>[w.id,w]));
+ const rows=[['date','category','program','exercise_en','exercise_fr','set','reps','kg','seconds','exercise_total_seconds','superset','imported']];
+ D.exercise_logs.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(l=>{const e=ex[l.exerciseId]||{},w=wo[l.workoutId]||{},p=pr[w.programId]||{};
+  (l.sets||[]).forEach((x,i)=>rows.push([l.date,w.category||'',p.name||'',e.nameEn||'(deleted)',e.nameFr||'',i+1,x.r??'',x.r!=null?(x.kg||0):'',x.s??'',l.duration??'',l.superset?'yes':'no',l.imported?'yes':'no']))});
+ return '\ufeff'+rows.map(r=>r.map(cv).join(';')).join('\r\n')}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
  out:()=>signOut(auth),
  tab:d=>{S.tab=d.t;S.view=null;R();if(d.t=='st')loadSt()},
  sp:d=>{S.sp=+d.k;R()},
+ lnk:d=>{const P=prog(),c=d.c,g=+d.g,G=gz(P,c).slice();G.splice(g,2,G[g]+G[g+1]);P[c+'G']=G;saveP(P,c);R()},
+ unl:d=>{const P=prog(),c=d.c,g=+d.g,G=gz(P,c).slice();G.splice(g,1,...Array(G[g]).fill(1));P[c+'G']=G;saveP(P,c);R()},
+ delp:async()=>{const P=prog();if(S.pr.length<2)return alert('You need at least one program.');
+  if(!confirm('Delete the program "'+P.name+'"? Your workout history is kept.'))return;
+  try{await deleteDoc(doc(db,'programs',P.id));const n=S.pr.find(x=>x.id!=P.id);await setDoc(doc(db,'user_settings','main'),{activeProgramId:n.id},{merge:true});await load();R()}catch(e){alert('Could not delete: '+e.message)}},
+ expj:async()=>{try{const D=await allData();await dl('workout-tracker-'+today()+'.json',JSON.stringify({app:'workout-tracker',exportedAt:new Date().toISOString(),...D},null,1),'application/json')}catch(e){alert('Export failed: '+e.message)}},
+ expc:async()=>{try{await dl('workout-tracker-'+today()+'.csv',toCsv(await allData()),'text/csv')}catch(e){alert('Export failed: '+e.message)}},
  seed:()=>seed().catch(e=>alert(e.message)),
  mv:d=>{const P=prog(),i=+d.i;if(i>0){[P[d.c][i-1],P[d.c][i]]=[P[d.c][i],P[d.c][i-1]];saveP(P,d.c);R()}},
  rm:d=>{if(!confirm('Remove this exercise from the program? Your history is kept.'))return;const P=prog(),c=d.c,n=+d.i,G=gz(P,c).slice();let a=0;for(let g=0;g<G.length;g++){if(n<a+G[g]){G[g]--;if(!G[g])G.splice(g,1);break}a+=G[g]}P[c].splice(n,1);P[c+'G']=G;saveP(P,c);R()},
