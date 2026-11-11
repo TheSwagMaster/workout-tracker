@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Workouts"><title>Workout Tracker</title>
+<style>
+:root{--g:rgba(255,255,255,.09);--b:rgba(255,255,255,.2);--t:#f4f6ff;--m:#a9b0cc}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:16px/1.4 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--t);background:#0b1020;min-height:100vh;padding-top:env(safe-area-inset-top)}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(500px 420px at 12% 8%,#5b6cffaa,transparent),radial-gradient(520px 520px at 95% 30%,#ff5fa355,transparent),radial-gradient(640px 520px at 25% 100%,#22d3c455,transparent),#0b1020}
+main{max-width:640px;margin:auto;padding:16px 14px 120px}
+.glass{background:var(--g);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--b);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 32px rgba(0,0,0,.3)}
+.card{padding:16px;margin:0 0 14px}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--g);border:1px solid var(--b);border-radius:14px;padding:10px 14px;min-height:44px;cursor:pointer}
+button.p{background:linear-gradient(135deg,#6d8bff,#a46bff);border:0;font-weight:600}
+input,select{background:rgba(255,255,255,.08);border:1px solid var(--b);border-radius:12px;padding:10px;min-height:44px;width:100%}
+select option{color:#000}
+nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;max-width:616px;margin:auto;padding:6px;gap:4px}
+nav button{flex:1;background:none;border:0;font-size:12px;color:var(--m);border-radius:18px;padding:6px 2px}
+nav button.on{background:rgba(255,255,255,.18);color:var(--t)}
+.row{display:flex;gap:8px;align-items:center}
+.s{color:var(--m);font-size:13px}
+h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.12);color:var(--m)}
+.set{display:grid;grid-template-columns:24px 1fr 1fr 44px;gap:8px;margin:6px 0;align-items:center}
+.set.t{grid-template-columns:24px 1fr 44px}
+.tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
+.item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+</style></head><body><div class="bg"></div><div id="app"></div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,collection,doc,getDocs,getDoc,setDoc,updateDoc,query,where,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const cfg={apiKey:"AIzaSyA4rP3w3WcTYIDSfUw_py0Sa22EvDli2ao",authDomain:"personal-workout-tracker-ce007.firebaseapp.com",projectId:"personal-workout-tracker-ce007",storageBucket:"personal-workout-tracker-ce007.firebasestorage.app",messagingSenderId:"960475930805",appId:"1:960475930805:web:cde480d99a4b9dd6575efc"};
+const app=initializeApp(cfg),auth=getAuth(app),db=initializeFirestore(app,{localCache:persistentLocalCache()});
+const col=n=>collection(db,n),$=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- Seed data ---------- */
+const X=`npu|Negative Pull-Up|Traction négative|r|1
+pu|Push-Up|Pompes|r|0
+dsp|Dumbbell Shoulder Press|Développé épaules haltères|r|1
+owr|One-Arm Dumbbell Row|Rowing haltère 1 bras|r|1
+bc|Dumbbell Biceps Curl|Curl biceps haltères|r|1
+te|Triceps Extension|Extension triceps haltère|r|1
+plank|Plank|Gainage (planche)|t|0
+hlr|Hanging Leg Raise|Relevés de jambes suspendu|r|1
+gs|Goblet Squat|Squat gobelet|r|1
+ht|Hip Thrust|Hip thrust haltère|r|1
+bss|Bulgarian Split Squat|Fentes bulgares|r|1
+rdl|Romanian Deadlift|Soulevé de terre roumain|r|1
+cr|Standing Calf Raise|Mollets debout|r|1
+bic|Bicycle Crunch|Crunch bicyclette|r|0
+sp|Side Plank|Planche latérale|t|0
+chin|Chin-Up|Traction supination|r|1
+dpu|Decline Push-Up|Pompes déclinées|r|0
+arn|Arnold Press|Développé Arnold|r|1
+bor|Bent-Over Dumbbell Row|Rowing penché haltères|r|1
+lat|Lateral Raise|Élévations latérales|r|1
+ham|Hammer Curl|Curl marteau|r|1
+dead|Dead Bug|Dead bug|r|0
+rus|Russian Twist|Russian twist|r|1
+fsq|Front Squat|Squat avant|r|1
+slht|Single-Leg Hip Thrust|Hip thrust unilatéral|r|0
+wl|Walking Lunge|Fentes marchées|r|1
+sldl|Single-Leg Deadlift|Soulevé de terre unilatéral|r|1
+slcr|Single-Leg Calf Raise|Mollets une jambe|r|0
+llr|Floor Leg Raise|Relevés de jambes au sol|r|0
+dp|Dynamic Plank|Planche dynamique|r|0
+wpu|Wide-Grip Pull-Up|Tractions prise large|r|1
+spu|Slow Tempo Push-Up|Pompes tempo lent|r|0
+fp|Floor Press|Floor press haltères|r|1
+owp|One-Arm Row (1s Pause)|Rowing 1 bras, pause 1s|r|1
+rf|Bent-Over Reverse Fly|Oiseau penché|r|1
+oth|Overhead Triceps Extension|Extension triceps au-dessus de la tête|r|1
+cc|Concentration Curl|Curl concentration|r|1
+rc|Reverse Curl|Curl inversé|r|1
+hol|Hollow Body Hold|Hollow body hold|t|0
+hkr|Hanging Knee Raise|Relevés de genoux suspendu|r|1
+gsp|Goblet Squat (2s Pause)|Squat gobelet, pause 2s|r|1
+htp|Hip Thrust (2s Pause)|Hip thrust bilatéral, pause 2s|r|1
+rl|Reverse Lunge|Fentes inversées|r|1
+rdlt|Romanian Deadlift (Slow Tempo)|Soulevé de terre roumain, tempo lent|r|1
+scr|Seated Calf Raise|Mollets assis|r|1
+cru|Weighted Crunch|Crunch lesté|r|1
+bd|Bird Dog|Bird dog|r|0
+ir|Inverted Row|Rowing inversé sous table|r|0
+fepu|Feet-Elevated Push-Up|Pompes pieds sur le lit|r|0
+pike|Pike Push-Up|Pike push-ups|r|0
+bpr|Backpack Bent-Over Row|Rowing penché sac à dos|r|0
+dia|Diamond Push-Up|Pompes diamant|r|0
+bpc|Backpack Curl|Curl sac à dos|r|0
+sts|Plank Shoulder Tap|Planche touche d'épaule|r|0
+bpsq|Backpack Squat (Slow Tempo)|Squat sac à dos, tempo lent|r|0
+slhb|Single-Leg Hip Thrust (Bed)|Hip thrust unilatéral, lit|r|0
+bpsl|Single-Leg Deadlift (Backpack)|Soulevé unilatéral sac à dos|r|0
+slcs|Single-Leg Calf Raise (Step)|Mollets une jambe sur marche|r|0`;
+const PR=[
+["September","npu,pu,dsp,owr,bc,te,plank,hlr","gs,ht,bss,rdl,cr,bic,sp"],
+["October","chin,dpu,arn,bor,lat,ham,dead,rus","fsq,slht,wl,sldl,slcr,llr,dp"],
+["October – New York","ir,fepu,pike,bpr,dia,bpc,dead,sts","bpsq,slhb,bss,bpsl,slcs,bic,sp"],
+["November","wpu,spu,fp,owp,rf,oth,cc,rc,hol,hkr","gsp,htp,rl,rdlt,scr,cru,bd"]];
+// date, category, "exercise:reps(or seconds):kg;..." , program index
+const H=[
+["2026-09-28","upper","npu:6,6,6:0;pu:15,15,15:0;dsp:8:20;owr:15:10;bc:11,8,7:8;te:15:2;plank:60:0;hlr:15:0",0],
+["2026-09-29","lower","gs:30,30,30:16;ht:30,30,30:16;bss:10:10;rdl:20:10;cr:30,30,20:10;bic:20:0;sp:60:0",0],
+["2026-10-15","upper","chin:6,3,3:0;dpu:15,15,7:0;arn:5,6,6:10;bor:15,15,15:10;lat:10,12,6:6;ham:20,20,15:6;dead:50:0;rus:50:6",1],
+["2026-11-09","upper","wpu:6,4,2:0;spu:15,10,7:0;fp:25,18,15:20;owp:15,10,10:10;rf:8,7,6:6;oth:15,15,11:4;cc:15,10,8:8;rc:15,8,14:4;hol:60,10:0;hkr:15,15:0",3],
+["2026-11-10","lower","gsp:30,30,30:16;htp:30,30,30:16;rl:30,30,30:10;rdlt:20,20,20:10",3]];
+
+/* ---------- State ---------- */
+let S={ex:[],pr:[],act:null,tab:'train',view:null,u:null,q:'',f:'all',sets:[],last:null,h:[]},W=null,T={acc:0,st:null};
+const exOf=id=>S.ex.find(x=>x.id===id),prog=()=>S.pr.find(p=>p.id===S.act)||S.pr[0];
+const el=()=>T.acc+(T.st?Date.now()-T.st:0),pause=()=>{if(T.st){T.acc+=Date.now()-T.st;T.st=null}};
+const fm=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const fs=s=>s.s!=null?s.s+'s':s.r+(s.kg?'×'+s.kg+'kg':' reps');
+const fd=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+async function load(){
+ const [a,b,c]=await Promise.all([getDocs(col('exercises')),getDocs(col('programs')),getDoc(doc(db,'user_settings','main'))]);
+ S.ex=a.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>x.nameEn.localeCompare(y.nameEn));
+ S.pr=b.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>(y.order||0)-(x.order||0));
+ S.act=c.exists()?c.data().activeProgramId:null;
+}
+async function logs(id){const r=await getDocs(query(col('exercise_logs'),where('exerciseId','==',id)));return r.docs.map(d=>d.data()).sort((x,y)=>y.date.localeCompare(x.date))}
+async function seed(){
+ const b=writeBatch(db),ids={},tt={};
+ X.split('\n').forEach(l=>{const[k,en,fr,t,e]=l.split('|'),r=doc(col('exercises'));ids[k]=r.id;tt[k]=t=='t';b.set(r,{nameEn:en,nameFr:fr,type:t=='t'?'time':'reps',equipment:e=='1'})});
+ const pr=PR.map(([n,u,l],i)=>{const r=doc(col('programs'));b.set(r,{name:n,order:i+1,upper:u.split(',').map(k=>ids[k]),lower:l.split(',').map(k=>ids[k])});return r.id});
+ H.forEach(([d,c,s,p])=>{const w=doc(col('workouts')),dt=d+'T18:00:00';b.set(w,{date:dt,programId:pr[p],category:c,imported:true});
+  s.split(';').forEach(x=>{const[k,v,kg]=x.split(':');b.set(doc(col('exercise_logs')),{exerciseId:ids[k],workoutId:w.id,date:dt,imported:true,duration:null,sets:v.split(',').map(n=>tt[k]?{s:+n}:{r:+n,kg:+kg})})})});
+ b.set(doc(db,'user_settings','main'),{activeProgramId:pr[3]});
+ await b.commit();await load();R();
+}
+
+/* ---------- Views ---------- */
+const head=(t,back)=>`<div class="row" style="margin-bottom:14px">${back?'<button data-a="back">‹</button>':''}<h1 style="flex:1">${t}</h1>${back?'':'<button data-a="out" class="s">Sign out</button>'}</div>`;
+const login=()=>`<main style="padding-top:18vh"><div class="glass card"><h1>Workout Tracker</h1><p class="s">Sign in to your account.</p><input id="em" type="email" placeholder="Email" autocomplete="username"><div style="height:8px"></div><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div style="height:12px"></div><button class="p" data-a="login" style="width:100%">Sign in</button><p class="s" id="er"></p></div></main>`;
+const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).join('');
+function catCard(P,c){return `<div class="glass card"><div class="row"><h2 style="flex:1">${c.toUpperCase()} BODY</h2><button class="p" data-a="start" data-c="${c}">Start</button></div>`+
+ P[c].map((id,i)=>{const e=exOf(id);return `<div class="row item"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${i}">↑</button><button data-a="rm" data-c="${c}" data-i="${i}">✕</button></div>`}).join('')+
+ `<div class="row item"><select id="add-${c}"><option value="">Add an exercise…</option>${opts()}</select><button data-a="add" data-c="${c}">Add</button></div></div>`}
+function train(){
+ const P=prog();
+ if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
+ return head('Training')+`<select id="ps" style="margin-bottom:14px">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`+catCard(P,'upper')+catCard(P,'lower');
+}
+const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&(e.nameEn+' '+e.nameFr).toLowerCase().includes(q));
+ return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.nameFr)}${e.type=='time'?' · timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
+const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search in English or French" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
+<details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><input id="n-fr" placeholder="French name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
+const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
+const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?soon('Statistics','Phase 3'):soon('AI Coach','Phase 4');
+const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+`<div class="glass card">`+P[W.cat].map(id=>{const e=exOf(id);return `<div class="row item" data-a="open" data-id="${id}"><div style="flex:1">${esc(e.nameEn)}</div><span>${W.done[id]?'✓':'›'}</span></div>`}).join('')+`</div><button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
+function exView(){const e=exOf(S.view.ex),t=e.type=='time';
+ return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)}</p><div class="glass card"><div class="s">${S.last?'Last time ('+fd(S.last.date)+'): '+S.last.sets.map(fs).join(', '):'No previous record.'}</div><div style="height:8px"></div>`+
+ S.sets.map((s,i)=>`<div class="set ${t?'t':''}"><span class="s">${i+1}</span>${t?`<input type="number" inputmode="numeric" placeholder="seconds" value="${s.s??''}" data-i="${i}" data-f="s">`:`<input type="number" inputmode="numeric" placeholder="reps" value="${s.r??''}" data-i="${i}" data-f="r"><input type="number" inputmode="decimal" placeholder="kg" value="${s.kg??''}" data-i="${i}" data-f="kg">`}<button data-a="delset" data-i="${i}">✕</button></div>`).join('')+
+ `<button data-a="addset" style="width:100%;margin-top:6px">Add set</button></div><div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div><button class="p" data-a="save" style="width:100%">Save exercise</button>`}
+function hist(){const e=exOf(S.view.hist);return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)}</p><div class="glass card">`+(S.h.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="s">${l.sets.map(fs).join(' · ')}${l.duration?' · '+fm(l.duration*1000):''}</div></div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
+const nav=()=>`<nav class="glass">${[['train','🏋️','Training'],['ex','📖','Exercises'],['st','📈','Statistics'],['ai','✨','AI Coach']].map(([k,i,l])=>`<button data-a="tab" data-t="${k}" class="${S.tab==k&&!S.view?'on':''}">${i}<br>${l}</button>`).join('')}</nav>`;
+function R(){const a=$('#app');if(!S.u){a.innerHTML=login();return}
+ const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()}
+
+/* ---------- Actions ---------- */
+const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c]}).catch(e=>alert(e.message));
+const A={
+ login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
+ out:()=>signOut(auth),
+ tab:d=>{S.tab=d.t;S.view=null;R()},
+ seed:()=>seed().catch(e=>alert(e.message)),
+ mv:d=>{const P=prog(),i=+d.i;if(i>0){[P[d.c][i-1],P[d.c][i]]=[P[d.c][i],P[d.c][i-1]];saveP(P,d.c);R()}},
+ rm:d=>{if(confirm('Remove this exercise from the program? Your history is kept.')){const P=prog();P[d.c].splice(+d.i,1);saveP(P,d.c);R()}},
+ add:d=>{const v=$('#add-'+d.c).value;if(v){const P=prog();P[d.c].push(v);saveP(P,d.c);R()}},
+ start:d=>{W={cat:d.c,pid:prog().id,done:{},ref:null,made:false};S.view={ses:1};R()},
+ open:async d=>{const e=exOf(d.id),L=await logs(d.id);S.last=L[0]||null;S.sets=L[0]?L[0].sets.map(s=>({...s})):[e.type=='time'?{s:''}:{r:'',kg:''}];T={acc:0,st:null};S.view={ex:d.id};R()},
+ addset:()=>{const l=S.sets[S.sets.length-1];S.sets.push(l?{...l}:{r:'',kg:''});R()},
+ delset:d=>{S.sets.splice(+d.i,1);R()},
+ tgl:()=>{if(T.st)pause();else T.st=Date.now();R()},
+ stp:()=>{pause();R()},
+ save:()=>{const e=exOf(S.view.ex);pause();
+  const sets=S.sets.map(s=>e.type=='time'?{s:+s.s}:{r:+s.r,kg:+s.kg||0}).filter(s=>s.s>0||s.r>0);
+  if(!sets.length)return alert('Add at least one set.');
+  const now=new Date().toISOString();
+  if(!W.ref)W.ref=doc(col('workouts'));
+  if(!W.made){setDoc(W.ref,{date:now,programId:W.pid,category:W.cat}).catch(e=>alert(e.message));W.made=true}
+  setDoc(doc(col('exercise_logs')),{exerciseId:e.id,workoutId:W.ref.id,date:now,sets,duration:Math.round(el()/1000)}).catch(e=>alert(e.message));
+  W.done[e.id]=1;S.view={ses:1};R()},
+ fin:()=>{W=null;S.view=null;S.tab='train';R()},
+ back:()=>{const v=S.view;if(v.ex)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;S.view=null}R()},
+ hist:async d=>{S.h=await logs(d.id);S.view={hist:d.id};R()},
+ flt:d=>{S.f=d.k;R()},
+ newex:async()=>{const en=$('#n-en').value.trim();if(!en)return alert('Enter an English name.');
+  if(S.ex.some(e=>e.nameEn.toLowerCase()==en.toLowerCase()))return alert('This exercise already exists.');
+  await setDoc(doc(col('exercises')),{nameEn:en,nameFr:$('#n-fr').value.trim()||en,type:$('#n-t').value,equipment:$('#n-e').value=='1'});await load();R()}
+};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f)S.sets[+d.i][d.f]=e.target.value;if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
+document.addEventListener('change',e=>{if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
+setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el())},300);
+onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R()});
+</script></body></html>
