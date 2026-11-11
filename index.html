@@ -177,10 +177,10 @@ function train(){
  if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
  return head('Training')+`<div class="row" style="margin-bottom:14px"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary>⋯</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
-const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&(e.nameEn+' '+e.nameFr).toLowerCase().includes(q));
- return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.nameFr)}${e.type=='time'?' · timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
-const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search in English or French" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
-<details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><input id="n-fr" placeholder="French name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
+const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&e.nameEn.toLowerCase().includes(q));
+ return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.muscles||'')}${e.type=='time'?(e.muscles?' · ':'')+'Timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
+const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search exercises" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
+<details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
 async function loadSt(){try{const[a,b]=await Promise.all([getDocs(col('workouts')),getDocs(col('exercise_logs'))]);S.ws=a.docs.map(d=>d.data());S.lg=b.docs.map(d=>d.data());if(S.tab=='st'&&!S.view)R()}catch(e){alert('Could not load statistics: '+e.message)}}
 const wk=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime()};
@@ -208,7 +208,7 @@ function stats(){
  `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`+
  `<div class="glass card"><h2>Export your data</h2><div class="s" style="margin:4px 0 10px">JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.</div><div class="row"><button class="p" data-a="expj" style="flex:1">Export JSON</button><button data-a="expc" style="flex:1">Export CSV</button></div></div>`}
 const exByName=n=>S.ex.find(e=>e.nameEn.toLowerCase()==String(n).toLowerCase());
-async function ensure(n,nw){const f=exByName(n);if(f)return f.id;const x=(nw||[]).find(y=>String(y.en).toLowerCase()==String(n).toLowerCase())||{en:n},r=doc(col('exercises')),o={nameEn:x.en,nameFr:x.fr||x.en,type:x.type=='time'?'time':'reps',equipment:x.equipment!==false};await setDoc(r,o);S.ex.push({id:r.id,...o});return r.id}
+async function ensure(n,nw){const f=exByName(n);if(f)return f.id;const x=(nw||[]).find(y=>String(y.en).toLowerCase()==String(n).toLowerCase())||{en:n},r=doc(col('exercises')),o={nameEn:x.en,nameFr:x.fr||x.en,type:x.type=='time'?'time':'reps',equipment:x.equipment!==false};await setDoc(r,o);S.ex.push({id:r.id,...o});genTips();return r.id}
 const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.lower]:[];
  return JSON.stringify({library:S.ex.map(e=>e.nameEn+(e.type=='time'?' (timed)':'')),activeProgram:P&&{name:P.name,upper:groups(P,'upper').map(g=>g.map(nm)),lower:groups(P,'lower').map(g=>g.map(nm))},
  recent:ids.map(id=>{const L=(S.lg||[]).filter(l=>l.exerciseId==id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);return nm(id)&&L.length?{exercise:nm(id),last:L.map(l=>l.date.slice(0,10)+': '+l.sets.map(fs).join(', '))}:null}).filter(Boolean)})};
@@ -220,7 +220,7 @@ const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():ai
 const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
 function exView(){const ids=S.view.ex;
  return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+`<div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div>`+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
- return `<div class="glass card"><div class="big">${esc(e.nameEn)}</div><div class="s">${esc(e.nameFr)}</div><div class="s">${L===undefined?'Loading…':L?'Last time ('+fd(L.date)+'): '+L.sets.map(fs).join(' · '):'No previous record.'}</div><div class="set hd ${t?'t':''}"><span>Set</span>${t?'<span>Seconds</span>':'<span>Reps</span><span>Kg</span>'}<span></span></div>`+
+ return `<div class="glass card"><div class="big">${esc(e.nameEn)}</div>${tipsHtml(e)}<div class="s">${L===undefined?'Loading…':L?'Last time ('+fd(L.date)+'): '+L.sets.map(fs).join(' · '):'No previous record.'}</div><div class="set hd ${t?'t':''}"><span>Set</span>${t?'<span>Seconds</span>':'<span>Reps</span><span>Kg</span>'}<span></span></div>`+
  S.sets[id].map((s,i)=>`<div class="set ${t?'t':''}"><span class="s">${i+1}</span>${t?`<input type="number" inputmode="numeric" placeholder="sec" value="${s.s??''}" data-x="${id}" data-i="${i}" data-f="s">`:`<input type="number" inputmode="numeric" placeholder="reps" value="${s.r??''}" data-x="${id}" data-i="${i}" data-f="r"><input type="number" inputmode="decimal" placeholder="BW" value="${s.kg||''}" data-x="${id}" data-i="${i}" data-f="kg">`}<button data-a="delset" data-x="${id}" data-i="${i}">✕</button></div>`).join('')+
  `<button data-a="addset" data-x="${id}" style="width:100%;margin-top:6px">Add set</button></div>`}).join('')+
  `<button class="p" data-a="save" style="width:100%">Save ${ids.length>1?'superset':'exercise'}</button>`}
@@ -229,7 +229,7 @@ function hist(){const e=exOf(S.view.hist),t=e.type=='time',L=S.h,hw=L.some(l=>l.
  const xy=pts.map((v,i)=>[12+i*276/Math.max(1,pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);
  const used=S.pr.filter(p=>p.upper.includes(e.id)||p.lower.includes(e.id)).map(p=>esc(p.name)).join(', ');
  const sd=d=>new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
- return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px">${esc(e.nameFr)} <button data-a="ren" data-id="${e.id}">Edit names</button></p><div class="glass card"><div class="row" style="text-align:center"><div style="flex:1"><div class="big">${L.length}</div><div class="s">Sessions</div></div><div style="flex:1"><div class="big">${L.length?mx+' '+u:'–'}</div><div class="s">Best</div></div><div style="flex:1"><div class="big">${L.length?sd(L[0].date):'–'}</div><div class="s">Last</div></div></div>`+
+ return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px"><button data-a="ren" data-id="${e.id}">Rename</button></p>${tipsHtml(e,1)}<div class="glass card"><div class="row" style="text-align:center"><div style="flex:1"><div class="big">${L.length}</div><div class="s">Sessions</div></div><div style="flex:1"><div class="big">${L.length?mx+' '+u:'–'}</div><div class="s">Best</div></div><div style="flex:1"><div class="big">${L.length?sd(L[0].date):'–'}</div><div class="s">Last</div></div></div>`+
  (pts.length>1?`<div class="s" style="margin-top:12px">Top ${t?'time':hw?'weight':'reps'} per session</div><svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#e39a6e" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#e39a6e"/>`).join('')}</svg>`:'<div class="s" style="margin-top:12px">Log at least 2 sessions to see a chart.</div>')+
  `<div class="s">Used in: ${used||'no program'}</div></div><div class="glass card">`+(L.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="ch">${l.sets.map(x=>`<span class="tag">${fs(x)}</span>`).join('')}</div><div class="s">${hw?'Volume: '+l.sets.reduce((a,x)=>a+x.r*x.kg,0)+' kg':''}${l.duration?' · Time: '+fm(l.duration*1000):''}</div></div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
 const nav=()=>`<nav class="glass">${[['train','🏋️','Training'],['ex','📖','Exercises'],['st','📈','Statistics'],['ai','✨','AI Coach']].map(([k,i,l])=>`<button data-a="tab" data-t="${k}" class="${S.tab==k&&!S.view?'on':''}">${i}<br>${l}</button>`).join('')}</nav>`;
@@ -252,11 +252,25 @@ function toCsv(D){const ex=Object.fromEntries(D.exercises.map(e=>[e.id,e])),pr=O
   (l.sets||[]).forEach((x,i)=>rows.push([l.date,w.category||'',p.name||'',e.nameEn||'(deleted)',e.nameFr||'',i+1,x.r??'',x.r!=null?(x.kg||0):'',x.s??'',l.duration??'',l.superset?'yes':'no',l.imported?'yes':'no']))});
  return '\ufeff'+rows.map(r=>r.map(cv).join(';')).join('\r\n')}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* ---------- Tips ---------- */
+const tipsHtml=(e,full)=>{const l=e.tips?`<ul style="margin:6px 0;padding-left:20px">${e.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<div class="s" style="margin:6px 0">Tips are being prepared…</div>',
+ b=`<div class="row"><button data-a="demo" data-id="${e.id}" style="flex:1">▶ Demo video</button>${full&&e.tips?`<button data-a="tipe" data-id="${e.id}" style="flex:1">Edit tips</button>`:''}</div>`;
+ return full?`<div class="glass card"><h2>How to</h2><div class="s">${esc(e.muscles||'')}</div>${l}${e.tips&&!e.tipsEdited?'<div class="s" style="margin-bottom:8px">AI-generated: double-check the technique.</div>':''}${b}</div>`:`<details style="margin:6px 0"><summary class="s">ⓘ Tips &amp; demo</summary>${l}${b}</details>`};
+async function genTips(){if(S.gen||!S.aiUrl)return;S.gen=1;S.sk=S.sk||{};
+ try{while(1){const m=S.ex.filter(e=>!e.tips&&!S.sk[e.id]).slice(0,8);if(!m.length)break;
+  const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({mode:'tips',names:m.map(e=>e.nameEn)})});
+  if(!r.ok)break;const a=JSON.parse((await r.json()).text);if(!Array.isArray(a))break;m.forEach(e=>S.sk[e.id]=1);
+  for(const x of a){const e=m.find(y=>y.nameEn.toLowerCase()==String(x.name).toLowerCase());if(!e||!Array.isArray(x.tips)||x.tips.length<3)continue;
+   const o={tips:x.tips.slice(0,3).map(String),tipsFr:(x.tipsFr||x.tips).slice(0,3).map(String),muscles:String(x.muscles||''),musclesFr:String(x.musclesFr||'')};if(x.fr&&e.nameFr==e.nameEn)o.nameFr=String(x.fr);
+   await updateDoc(doc(db,'exercises',e.id),o);Object.assign(e,o)}
+  if(!S.view&&S.tab=='ex')R()}}catch(e){}S.gen=0}
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
  out:()=>signOut(auth),
  tab:d=>{S.tab=d.t;S.view=null;R();if(d.t=='st')loadSt()},
  sp:d=>{S.sp=+d.k;R()},
+ demo:d=>window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(exOf(d.id).nameEn+' exercise how to'),'_blank','noopener'),
+ tipe:async d=>{const e=exOf(d.id),v=prompt('Your tips, separated by |',e.tips.join(' | '));if(!v)return;const t=v.split('|').map(x=>x.trim()).filter(Boolean).slice(0,3);if(!t.length)return;await updateDoc(doc(db,'exercises',e.id),{tips:t,tipsEdited:true});e.tips=t;e.tipsEdited=true;R()},
  tgo:d=>{S.op[d.c]=!S.op[d.c];R()},
  edt:d=>{S.edit=S.edit==d.c?null:d.c;R()},
  lnk:d=>{const P=prog(),c=d.c,g=+d.g,G=gz(P,c).slice();G.splice(g,2,G[g]+G[g+1]);P[c+'G']=G;saveP(P,c);R()},
@@ -287,9 +301,9 @@ const A={
  dup:async()=>{const P=prog(),n=prompt('Name of the new program',P.name+' (copy)');if(n)await mk(n.trim(),P.upper.slice(),P.lower.slice(),gz(P,'upper').slice(),gz(P,'lower').slice())},
  newp:async()=>{const n=prompt('Name of the new program');if(n)await mk(n.trim(),[],[],[],[])},
  renp:async()=>{const P=prog(),n=prompt('New name',P.name);if(n){await updateDoc(doc(db,'programs',P.id),{name:n.trim()});await load();R()}},
- ren:async d=>{const e=exOf(d.id),en=prompt('English name',e.nameEn);if(!en)return;const fr=prompt('French name',e.nameFr);if(!fr)return;
+ ren:async d=>{const e=exOf(d.id),en=prompt('English name',e.nameEn);if(!en)return;
   if(S.ex.some(x=>x.id!=e.id&&x.nameEn.toLowerCase()==en.trim().toLowerCase()))return alert('This name already exists.');
-  await updateDoc(doc(db,'exercises',e.id),{nameEn:en.trim(),nameFr:fr.trim()});await load();R()},
+  await updateDoc(doc(db,'exercises',e.id),{nameEn:en.trim(),nameFr:e.nameFr==e.nameEn?en.trim():e.nameFr});await load();R()},
  aiurl:async()=>{const v=$('#aiu').value.trim();if(!/^https:\/\//.test(v))return alert('Enter the full https:// address.');await setDoc(doc(db,'user_settings','main'),{aiUrl:v},{merge:true});S.aiUrl=v;R()},
  send:async()=>{const i=$('#ai-in'),t=i.value.trim();if(!t||S.busy)return;S.chat.push({r:'user',t});S.busy=1;R();
   try{await loadSt();const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({context:aiCtx(),contents:S.chat.slice(-10).map(x=>({role:x.r=='user'?'user':'model',parts:[{text:x.t}]}))})});
@@ -310,12 +324,12 @@ const A={
  flt:d=>{S.f=d.k;R()},
  newex:async()=>{const en=$('#n-en').value.trim();if(!en)return alert('Enter an English name.');
   if(S.ex.some(e=>e.nameEn.toLowerCase()==en.toLowerCase()))return alert('This exercise already exists.');
-  await setDoc(doc(col('exercises')),{nameEn:en,nameFr:$('#n-fr').value.trim()||en,type:$('#n-t').value,equipment:$('#n-e').value=='1'});await load();R()}
+  await setDoc(doc(col('exercises')),{nameEn:en,nameFr:en,type:$('#n-t').value,equipment:$('#n-e').value=='1'});await load();R();genTips()}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
 document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
 document.addEventListener('change',e=>{if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='ai-in')A.send()});
 setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el())},300);
-onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R()});
+onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R();if(u)genTips()});
 </script></body></html>
