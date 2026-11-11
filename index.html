@@ -117,7 +117,7 @@ const H=[
 ["2026-11-10","lower","gsp:30,30,30:16;htp:30,30,30:16;rl:30,30,30:10;rdlt:20,20,20:10",3]];
 
 /* ---------- State ---------- */
-let S={ex:[],pr:[],act:null,tab:'train',view:null,u:null,q:'',f:'all',sets:[],last:null,h:[]},W=null,T={acc:0,st:null};
+let S={chat:[],aiUrl:'',ex:[],pr:[],act:null,tab:'train',view:null,u:null,q:'',f:'all',sets:[],last:null,h:[]},W=null,T={acc:0,st:null};
 const exOf=id=>S.ex.find(x=>x.id===id),prog=()=>S.pr.find(p=>p.id===S.act)||S.pr[0];
 const el=()=>T.acc+(T.st?Date.now()-T.st:0),pause=()=>{if(T.st){T.acc+=Date.now()-T.st;T.st=null}};
 const fm=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
@@ -128,7 +128,7 @@ async function load(){
  const [a,b,c]=await Promise.all([getDocs(col('exercises')),getDocs(col('programs')),getDoc(doc(db,'user_settings','main'))]);
  S.ex=a.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>x.nameEn.localeCompare(y.nameEn));
  S.pr=b.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>(y.order||0)-(x.order||0));
- S.act=c.exists()?c.data().activeProgramId:null;
+ S.act=c.exists()?c.data().activeProgramId:null;S.aiUrl=c.exists()?c.data().aiUrl||'':'';
 }
 async function logs(id){const r=await getDocs(query(col('exercise_logs'),where('exerciseId','==',id)));return r.docs.map(d=>d.data()).sort((x,y)=>y.date.localeCompare(x.date))}
 async function seed(){
@@ -184,7 +184,16 @@ function stats(){
  `<div class="glass card"><div class="row" style="text-align:center">${cell(nW,'This week')}${cell(nM,'This month')}${cell(avg,'Per week')}</div><div class="s" style="margin-top:10px">${ws.length} sessions in this period · ${vol} kg lifted (weighted sets only, bodyweight sets not counted)</div></div>`+
  `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" style="width:100%">${bars}</svg></div>`+
  `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`}
-const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():soon('AI Coach','Phase 4');
+const exByName=n=>S.ex.find(e=>e.nameEn.toLowerCase()==String(n).toLowerCase());
+async function ensure(n,nw){const f=exByName(n);if(f)return f.id;const x=(nw||[]).find(y=>String(y.en).toLowerCase()==String(n).toLowerCase())||{en:n},r=doc(col('exercises')),o={nameEn:x.en,nameFr:x.fr||x.en,type:x.type=='time'?'time':'reps',equipment:x.equipment!==false};await setDoc(r,o);S.ex.push({id:r.id,...o});return r.id}
+const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.lower]:[];
+ return JSON.stringify({library:S.ex.map(e=>e.nameEn+(e.type=='time'?' (timed)':'')),activeProgram:P&&{name:P.name,upper:groups(P,'upper').map(g=>g.map(nm)),lower:groups(P,'lower').map(g=>g.map(nm))},
+ recent:ids.map(id=>{const L=(S.lg||[]).filter(l=>l.exerciseId==id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);return nm(id)&&L.length?{exercise:nm(id),last:L.map(l=>l.date.slice(0,10)+': '+l.sets.map(fs).join(', '))}:null}).filter(Boolean)})};
+const prop=(m,i)=>`<div class="grp"><div class="big">${esc(m.p.name||'Program')}</div>`+['upper','lower'].map(c=>`<div class="s" style="margin-top:6px">${c.toUpperCase()}</div>`+(m.p[c]||[]).map(g=>`<div>${[].concat(g).map(esc).join(' + ')}</div>`).join('')).join('')+`<div class="row" style="margin-top:10px"><button class="p" data-a="okp" data-i="${i}" style="flex:1">Add as new program</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`;
+const msg=(m,i)=>`<div class="glass card" style="${m.r=='user'?'margin-left:36px':'margin-right:16px'}"><div style="white-space:pre-wrap">${esc(m.t)}</div>${m.p?prop(m,i):''}${m.sw?`<div class="grp"><div class="s">Replace in your active program</div><div class="big">${esc(m.sw.from)} → ${esc(m.sw.to)}</div><div class="row"><button class="p" data-a="oks" data-i="${i}" style="flex:1">Confirm</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`:''}</div>`;
+const ai=()=>!S.aiUrl?head('AI Coach')+`<div class="glass card"><p>Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.</p><input id="aiu" placeholder="https://workout-coach.xxx.workers.dev"><div style="height:8px"></div><button class="p" data-a="aiurl">Save</button></div>`:
+ head('AI Coach')+`<div class="s" style="margin-bottom:10px">Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.</div>`+(S.chat.length?'':'<div class="glass card"><div class="s">Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.</div></div>')+S.chat.map(msg).join('')+(S.busy?'<div class="s">Thinking…</div>':'')+`<div class="glass card"><input id="ai-in" placeholder="Ask your coach…"><div style="height:8px"></div><button class="p" data-a="send" style="width:100%">Send</button></div>`;
+const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():ai();
 const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
 function exView(){const ids=S.view.ex;
  return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
@@ -236,6 +245,20 @@ const A={
  ren:async d=>{const e=exOf(d.id),en=prompt('English name',e.nameEn);if(!en)return;const fr=prompt('French name',e.nameFr);if(!fr)return;
   if(S.ex.some(x=>x.id!=e.id&&x.nameEn.toLowerCase()==en.trim().toLowerCase()))return alert('This name already exists.');
   await updateDoc(doc(db,'exercises',e.id),{nameEn:en.trim(),nameFr:fr.trim()});await load();R()},
+ aiurl:async()=>{const v=$('#aiu').value.trim();if(!/^https:\/\//.test(v))return alert('Enter the full https:// address.');await setDoc(doc(db,'user_settings','main'),{aiUrl:v},{merge:true});S.aiUrl=v;R()},
+ send:async()=>{const i=$('#ai-in'),t=i.value.trim();if(!t||S.busy)return;S.chat.push({r:'user',t});S.busy=1;R();
+  try{await loadSt();const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({context:aiCtx(),contents:S.chat.slice(-10).map(x=>({role:x.r=='user'?'user':'model',parts:[{text:x.t}]}))})});
+   if(!r.ok)throw new Error(r.status==429?'The free AI quota is used up for now. Try again later.':'The AI is unavailable ('+r.status+'). Your tracking still works.');
+   const d=await r.json();let j;try{j=JSON.parse(d.text)}catch(e){j={reply:d.text}}
+   S.chat.push({r:'ai',t:j.reply||'',p:j.program&&(j.program.upper||j.program.lower)?j.program:null,sw:j.swap&&j.swap.from&&j.swap.to?j.swap:null,nw:j.new||[]})}
+  catch(e){S.chat.push({r:'ai',t:'⚠ '+e.message})}
+  S.busy=0;R();scrollTo(0,document.body.scrollHeight)},
+ no:d=>{const m=S.chat[+d.i];m.p=null;m.sw=null;R()},
+ okp:async d=>{const m=S.chat[+d.i],p=m.p,u=[],l=[],ug=[],lg=[];for(const[c,L,G]of[['upper',u,ug],['lower',l,lg]])for(const g of p[c]||[]){const gg=[].concat(g);for(const n of gg)L.push(await ensure(n,m.nw));G.push(gg.length)}
+  await mk((p.name||'AI program').trim(),u,l,ug,lg);m.p=null;S.tab='train';S.view=null;R()},
+ oks:async d=>{const m=S.chat[+d.i],w=m.sw,P=prog(),f=exByName(w.from);if(!f)return alert('Exercise not found in your library.');const id=await ensure(w.to,m.nw);let ok=0;
+  for(const c of['upper','lower']){const i=P[c].indexOf(f.id);if(i>=0){P[c][i]=id;await saveP(P,c);ok=1}}
+  if(!ok)return alert('That exercise is not in the active program.');m.sw=null;R()},
  fin:()=>{W=null;S.view=null;S.tab='train';R()},
  back:()=>{const v=S.view;if(v.ex)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;S.view=null}R()},
  hist:async d=>{S.h=await logs(d.id);S.view={hist:d.id};R()},
@@ -247,6 +270,7 @@ const A={
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
 document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList()}});
 document.addEventListener('change',e=>{if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
+document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='ai-in')A.send()});
 setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el())},300);
 onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}}R()});
 </script></body></html>
