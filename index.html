@@ -29,6 +29,17 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
 .item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 [data-a]{cursor:pointer;touch-action:manipulation}
+.ic{min-height:36px;min-width:36px;padding:0 10px;border:0;background:none;color:var(--m)}
+.ghost{background:none;border:0;color:var(--m);min-height:36px;padding:0 4px;font-size:14px}
+.grp2{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
+.gx{flex:1;padding-left:10px;border-left:2px solid transparent}.gx.ss{border-left-color:#e39a6e}
+.gx .nm{display:flex;align-items:center;min-height:30px}.gx .nm span{flex:1}
+.hdl{touch-action:none;cursor:grab;color:var(--m);font-size:22px;padding:4px 6px;user-select:none}
+.drg{opacity:.35}.tgt{box-shadow:0 -2px 0 #e39a6e}
+.mn{position:relative}.mn summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;border:1px solid var(--b);background:var(--g);font-size:20px}
+.mn summary::-webkit-details-marker{display:none}
+.menu{position:absolute;right:0;top:50px;z-index:5;padding:6px;min-width:180px;background:#26211e}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none}
 .grp{border-top:1px solid rgba(255,255,255,.1);padding:8px 0}
 .hd{color:var(--m);font-size:12px;margin-top:10px}
 .big{font-size:18px;font-weight:600;padding:2px 0}
@@ -118,7 +129,7 @@ const H=[
 ["2026-11-10","lower","gsp:30,30,30:16;htp:30,30,30:16;rl:30,30,30:10;rdlt:20,20,20:10",3]];
 
 /* ---------- State ---------- */
-let S={chat:[],aiUrl:'',ex:[],pr:[],act:null,tab:'train',view:null,u:null,q:'',f:'all',sets:[],last:null,h:[]},W=null,T={acc:0,st:null};
+let S={chat:[],aiUrl:'',ex:[],pr:[],act:null,tab:'train',op:{},edit:null,view:null,u:null,q:'',f:'all',sets:[],last:null,h:[]},W=null,T={acc:0,st:null};
 const exOf=id=>S.ex.find(x=>x.id===id),prog=()=>S.pr.find(p=>p.id===S.act)||S.pr[0];
 const el=()=>T.acc+(T.st?Date.now()-T.st:0),pause=()=>{if(T.st){T.acc+=Date.now()-T.st;T.st=null}};
 const fm=ms=>{const s=Math.floor(ms/1000);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
@@ -148,13 +159,23 @@ const login=()=>`<main style="padding-top:18vh"><div class="glass card"><h1>Work
 const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).join('');
 const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
 const groups=(P,c)=>{let i=0;return gz(P,c).map(k=>{const g=P[c].slice(i,i+k);i+=k;return g})};
-function catCard(P,c){let i=0;return `<div class="glass card"><div class="row"><h2 style="flex:1">${c.toUpperCase()} BODY</h2><button class="p" data-a="start" data-c="${c}">Start</button></div>`+
- gz(P,c).map((k,gi)=>{const b=i;i+=k;return `<div class="grp">${k>1?'<div class="row"><div class="s" style="flex:1">Superset '+(gi+1)+'</div><button data-a="unl" data-c="'+c+'" data-g="'+gi+'">Unlink</button></div>':''}`+P[c].slice(b,b+k).map((id,j)=>{const e=exOf(id);return `<div class="row" style="padding:3px 0"><div style="flex:1">${e?esc(e.nameEn):'?'}</div><button data-a="mv" data-c="${c}" data-i="${b+j}">↑</button><button data-a="rm" data-c="${c}" data-i="${b+j}">✕</button></div>`}).join('')+`${k==1&&gz(P,c)[gi+1]==1?'<button data-a="lnk" data-c="'+c+'" data-g="'+gi+'" style="width:100%;margin-top:4px">⛓ Link with next as a superset</button>':''}</div>`}).join('')+
- `<div class="row item"><select id="add-${c}"><option value="">Add an exercise…</option>${opts()}</select><button data-a="add" data-c="${c}">Add</button></div></div>`}
+function catCard(P,c){const G=groups(P,c),n=P[c].length,ed=S.edit==c,op=ed||S.op[c];let b=0;
+ const hd=`<div class="row"><div data-a="tgo" data-c="${c}" style="flex:1;padding:4px 0"><h2>${c=='upper'?'Upper':'Lower'} body</h2><div class="s">${n} exercises · ${G.length} blocks ${op?'▴':'▾'}</div></div><button class="p" data-a="start" data-c="${c}">Start</button></div>`;
+ if(!op)return `<div class="glass card" data-card="${c}">${hd}</div>`;
+ const body=G.map((g,gi)=>{const o=b;b+=g.length;return `<div class="grp2" data-g="${gi}">${ed?`<span class="hdl" data-drag="${gi}" data-c="${c}">⠿</span>`:''}<div class="gx ${g.length>1?'ss':''}">${g.map((id,j)=>{const e=exOf(id);return `<div class="nm"><span>${e?esc(e.nameEn):'?'}</span>${ed?`<button class="ic" data-a="rm" data-c="${c}" data-i="${o+j}">✕</button>`:''}</div>`}).join('')}`+
+  (ed?(g.length>1?`<button class="ghost" data-a="unl" data-c="${c}" data-g="${gi}">Unlink superset</button>`:G[gi+1]&&G[gi+1].length==1?`<button class="ghost" data-a="lnk" data-c="${c}" data-g="${gi}">Link with next ⛓</button>`:''):'')+`</div></div>`}).join('');
+ const ft=ed?`<div class="row item"><select id="add-${c}"><option value="">Add an exercise…</option>${opts()}</select><button data-a="add" data-c="${c}">Add</button></div><button class="p" data-a="edt" data-c="${c}" style="width:100%">Done</button>`:`<div class="row" style="justify-content:flex-end"><button class="ghost" data-a="edt" data-c="${c}">Edit</button></div>`;
+ return `<div class="glass card" data-card="${c}">${hd}<div style="height:6px"></div>${body}${ft}</div>`}
+/* drag & drop des blocs */
+let DR=null;const drClean=()=>{document.querySelectorAll('.drg,.tgt').forEach(x=>x.classList.remove('drg','tgt'));DR=null};
+document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-drag]');if(!h)return;e.preventDefault();DR={c:h.dataset.c,a:+h.dataset.drag,to:+h.dataset.drag};h.closest('.grp2').classList.add('drg');try{h.setPointerCapture(e.pointerId)}catch(_){}});
+document.addEventListener('pointermove',e=>{if(!DR)return;const t=document.elementsFromPoint(e.clientX,e.clientY).find(x=>x.classList&&x.classList.contains('grp2')&&x.closest('[data-card]')&&x.closest('[data-card]').dataset.card==DR.c);if(!t)return;document.querySelectorAll('.tgt').forEach(x=>x.classList.remove('tgt'));DR.to=+t.dataset.g;t.classList.add('tgt')});
+const drEnd=()=>{if(!DR)return;const{c,a,to}=DR;drClean();if(a==to)return;const P=prog(),gs=groups(P,c),[m]=gs.splice(a,1);gs.splice(to,0,m);P[c]=gs.flat();P[c+'G']=gs.map(g=>g.length);saveP(P,c);R()};
+document.addEventListener('pointerup',drEnd);document.addEventListener('pointercancel',drClean);
 function train(){
  const P=prog();
  if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
- return head('Training')+`<select id="ps" style="margin-bottom:14px">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`+`<div class="row" style="margin-bottom:14px"><button data-a="newp" style="flex:1">New</button><button data-a="renp" style="flex:1">Rename</button><button data-a="delp" style="flex:1">Delete</button></div>`+catCard(P,'upper')+catCard(P,'lower');
+ return head('Training')+`<div class="row" style="margin-bottom:14px"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary>⋯</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
 const exList=()=>{const q=S.q.toLowerCase();const L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&(e.nameEn+' '+e.nameFr).toLowerCase().includes(q));
  return L.map(e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s">${esc(e.nameFr)}${e.type=='time'?' · timed':''}</div></div>`).join('')||'<p class="s">No exercise found.</p>'};
@@ -236,6 +257,8 @@ const A={
  out:()=>signOut(auth),
  tab:d=>{S.tab=d.t;S.view=null;R();if(d.t=='st')loadSt()},
  sp:d=>{S.sp=+d.k;R()},
+ tgo:d=>{S.op[d.c]=!S.op[d.c];R()},
+ edt:d=>{S.edit=S.edit==d.c?null:d.c;R()},
  lnk:d=>{const P=prog(),c=d.c,g=+d.g,G=gz(P,c).slice();G.splice(g,2,G[g]+G[g+1]);P[c+'G']=G;saveP(P,c);R()},
  unl:d=>{const P=prog(),c=d.c,g=+d.g,G=gz(P,c).slice();G.splice(g,1,...Array(G[g]).fill(1));P[c+'G']=G;saveP(P,c);R()},
  delp:async()=>{const P=prog();if(S.pr.length<2)return alert('You need at least one program.');
