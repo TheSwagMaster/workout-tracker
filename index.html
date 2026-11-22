@@ -185,7 +185,7 @@ const drEnd=()=>{if(!DR)return;const{c,a,to}=DR;drClean();if(a==to)return;const 
 document.addEventListener('pointerup',drEnd);document.addEventListener('pointercancel',drClean);
 function train(){
  const P=prog();
- if(!P)return head('Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
+ if(!P)return head('My Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
  return head('Training')+(S.draft?draftCard():'')+`<div class="row" style="margin-bottom:14px"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary>⋯</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
 const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),dn=e=>S.lang=='fr'&&e.nameFr?e.nameFr:e.nameEn;
