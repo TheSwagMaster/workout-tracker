@@ -1,60 +1,170 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#131110"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#101619"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Workouts"><title>Workout Tracker</title>
 <style>
-:root{--g:rgba(255,240,225,.06);--b:rgba(255,235,215,.14);--t:#f3ede6;--m:#a39a90}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font:16px/1.4 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--t);background:#131110;min-height:100vh;padding-top:env(safe-area-inset-top)}
-.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(520px 420px at 10% 0%,#c8643f2e,transparent),radial-gradient(560px 520px at 100% 45%,#8a5a3024,transparent),#131110}
-main{max-width:640px;margin:auto;padding:16px 14px 120px}
-.glass{background:var(--g);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--b);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,235,215,.2),0 10px 32px rgba(0,0,0,.3)}
-.card{padding:16px;margin:0 0 14px}
-button,input,select{font:inherit;color:inherit}
-button{background:var(--g);border:1px solid var(--b);border-radius:14px;padding:10px 14px;min-height:44px;cursor:pointer}
-button.p{background:linear-gradient(135deg,#e39a6e,#c4623a);color:#1a110c;border:0;font-weight:600}
-input,select{background:rgba(255,255,255,.08);border:1px solid var(--b);border-radius:12px;padding:10px;min-height:44px;width:100%}
-select option{color:#000}
-nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;max-width:616px;margin:auto;padding:6px;gap:4px}
-nav button{flex:1;background:none;border:0;font-size:12px;color:var(--m);border-radius:18px;padding:6px 2px}
-nav button.on{background:rgba(255,255,255,.18);color:var(--t)}
-.row{display:flex;gap:8px;align-items:center}
-.s{color:var(--m);font-size:13px}
-h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0}
-.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.12);color:var(--m)}
-.set{display:grid;grid-template-columns:24px 1fr 1fr 92px;gap:8px;margin:6px 0;align-items:center}
-.tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
-.item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
-[data-a]{cursor:pointer;touch-action:manipulation}
-:root{--sh:#26211e}
-html[data-th=light]{--g:rgba(255,255,255,.7);--b:rgba(70,45,25,.16);--t:#2a211b;--m:#7d6e62;--sh:#fffaf5;color-scheme:light}
-html[data-th=light] body{background:#f4efe9}
-html[data-th=light] .bg{background:radial-gradient(520px 420px at 10% 0%,#e39a6e40,transparent),radial-gradient(560px 520px at 100% 45%,#c4623a1f,transparent),#f4efe9}
-html[data-th=light] .glass{box-shadow:inset 0 1px 0 #fff,0 8px 24px rgba(90,60,40,.12)}
-html[data-th=light] input,html[data-th=light] select{background:rgba(0,0,0,.05)}
-html[data-th=light] nav button.on{background:rgba(0,0,0,.08)}
-html[data-th=light] .item,html[data-th=light] .grp,html[data-th=light] .grp2{border-color:rgba(0,0,0,.1)}
-html[data-th=light] .tag{background:rgba(0,0,0,.07)}
-.letter{position:sticky;top:0;z-index:2;width:fit-content;margin:8px 0 6px;padding:2px 12px;border-radius:10px;font-weight:700;color:#e39a6e;background:var(--sh)}
-.sheet{position:fixed;z-index:21;left:12px;right:12px;top:12vh;max-width:420px;margin:auto;padding:18px;background:var(--sh)}
-.ic{min-height:36px;min-width:36px;padding:0 10px;border:0;background:none;color:var(--m)}
-.ghost{background:none;border:0;color:var(--m);min-height:36px;padding:0 4px;font-size:14px}
-.grp2{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid rgba(255,255,255,.08)}
-.gx{flex:1;padding-left:10px;border-left:2px solid transparent}.gx.ss{border-left-color:#e39a6e}
-.gx .nm{display:flex;align-items:center;min-height:30px}.gx .nm span{flex:1}
-.hdl{touch-action:none;cursor:grab;color:var(--m);font-size:22px;padding:4px 6px;user-select:none}
-.drg{opacity:.35}.tgt{box-shadow:0 -2px 0 #e39a6e}
-.mn{position:relative}.mn summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;border:1px solid var(--b);background:var(--g);font-size:20px}
-.mn summary::-webkit-details-marker{display:none}
-.menu{position:absolute;right:0;top:50px;z-index:5;padding:6px;min-width:180px;background:var(--sh)}
-.menu button{display:block;width:100%;text-align:left;border:0;background:none}
-.grp{border-top:1px solid rgba(255,255,255,.1);padding:8px 0}
-.hd{color:var(--m);font-size:12px;margin-top:10px}
-.big{font-size:18px;font-weight:600;padding:2px 0}
-.ch{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.ch .tag{font-size:14px;padding:4px 10px}
-.dn{opacity:.55}
+/* Theme and shared surfaces */
+:root {
+  color-scheme: dark;
+  --base:#101619; --text:#f1f7f6; --muted:#afc1c2; --accent:#a4e9d3; --ink:#112820;
+  --surface:#202e32; --raised:#25363b; --field:#152125; --line:#809fa244;
+  --shine:#dafff329; --wash:#294b49; --ambient:#27374d; --shadow:#050b1044;
+  --radius:24px; --control:13px; --gap:12px; --touch:44px;
+}
+html[data-th=light] {
+  color-scheme:light;
+  --base:#edf4f2; --text:#182824; --muted:#4a615c; --accent:#176653; --ink:#fff;
+  --surface:#f8fcfb; --raised:#f4faf8; --field:#fff; --line:#496b6044;
+  --shine:#fff; --wash:#c4e6dc; --ambient:#d5e1f0; --shadow:#263e3320;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; min-height:100vh; isolation:isolate;
+  padding-top:env(safe-area-inset-top);
+  color:var(--text); background:var(--base);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+.bg {
+  position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background:radial-gradient(ellipse at 18% 0%,var(--wash),transparent 62%),
+             radial-gradient(ellipse at 100% 78%,var(--ambient),transparent 58%),var(--base);
+}
+main {
+  max-width:768px; margin:auto;
+  padding:clamp(22px,5vw,56px) max(14px,env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+}
+.glass {
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:inset 0 1px var(--shine),0 12px 30px var(--shadow);
+}
+@supports (background:color-mix(in srgb,white,transparent)) {
+  .glass {
+    background:linear-gradient(150deg,var(--shine),transparent 55%),color-mix(in srgb,var(--surface) 85%,transparent);
+    -webkit-backdrop-filter:blur(18px) saturate(135%);
+    backdrop-filter:blur(18px) saturate(135%);
+  }
+}
+.card { padding:clamp(14px,4vw,24px); margin:0 0 var(--gap); overflow-wrap:anywhere; }
+.card > :first-child { margin-top:0; }
+.row { display:flex; gap:var(--gap); align-items:center; }
+.row > * { min-width:0; }
+.s { color:var(--muted); font-size:.875rem; }
+h1,h2,.big { margin:0; overflow-wrap:anywhere; }
+h1 { font-size:clamp(1.85rem,6vw,3rem); line-height:1.06; letter-spacing:-.045em; font-weight:750; }
+h2 { font-size:1.15rem; line-height:1.24; letter-spacing:-.02em; }
+.big { font-size:1.18rem; font-weight:700; letter-spacing:-.018em; font-variant-numeric:tabular-nums; }
+.page-head { margin-bottom:clamp(18px,4vw,30px); }
+.page-head h1 { flex:1; }
+.login { max-width:450px; padding-top:clamp(44px,15vh,160px); }
+.login .card { padding:clamp(18px,6vw,32px); }
+
+/* Controls and navigation */
+button,input,select { font:inherit; color:inherit; min-height:var(--touch); }
+button,summary,[data-a] { touch-action:manipulation; }
+button,[data-a],summary { cursor:pointer; }
+button {
+  padding:8px 13px; background:var(--raised); border:1px solid var(--line);
+  border-radius:var(--control); line-height:1.2; font-size:.9rem; font-weight:620;
+  transition:background-color .18s, border-color .18s, box-shadow .18s;
+}
+button.p { background:var(--accent); color:var(--ink); border-color:transparent; }
+button:active { box-shadow:inset 0 0 0 2px currentColor; }
+input,select {
+  display:block; width:100%; min-width:0; padding:8px 11px;
+  background:var(--field); border:1px solid var(--line); border-radius:var(--control);
+}
+input::placeholder { color:var(--muted); opacity:1; }
+:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.ic { display:inline-grid; place-items:center; flex:none; width:var(--touch); padding:0; }
+.icon { display:block; width:21px; height:21px; flex:none; }
+nav {
+  position:fixed; z-index:10; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px;
+  left:max(10px,env(safe-area-inset-left)); right:max(10px,env(safe-area-inset-right));
+  bottom:calc(8px + env(safe-area-inset-bottom)); max-width:540px; margin:auto; padding:5px;
+}
+nav button {
+  display:grid; justify-items:center; align-content:center; gap:4px; min-height:53px;
+  padding:4px 2px; border:1px solid transparent; background:transparent; color:var(--muted);
+  font-size:clamp(.65rem,2.7vw,.77rem); text-align:center;
+}
+nav button.on { background:var(--field); color:var(--accent); border-color:var(--line); }
+.filters { flex-wrap:wrap; margin-bottom:var(--gap); gap:8px; }
+.tag { display:inline-block; font-size:.75rem; padding:4px 8px; border-radius:99px; background:var(--field); color:var(--muted); }
+@media (hover:hover) {
+  button:not(.p):hover,.mn summary:hover { border-color:var(--accent); }
+  button.p:hover { box-shadow:inset 0 0 0 2px var(--ink); }
+  .card[data-a]:hover { border-color:var(--accent); }
+}
+
+/* Training, logging, library and overlays */
+.program-picker { margin-bottom:var(--gap); }
+.program-toggle {
+  display:flex; flex:1; align-items:center; justify-content:space-between; gap:8px;
+  text-align:left; background:transparent; border-color:transparent; padding:6px;
+}
+.program-toggle .icon { color:var(--muted); transition:transform .18s; }
+.program-toggle[aria-expanded=true] .icon,.reveal[open] > summary .icon { transform:rotate(180deg); }
+.program-toggle .s { display:block; margin-top:3px; font-weight:400; }
+.program-head { margin-inline-start:-6px; }
+.reveal > summary { display:flex; justify-content:space-between; align-items:center; gap:8px; min-height:var(--touch); list-style:none; }
+.reveal > summary::-webkit-details-marker,.mn summary::-webkit-details-marker { display:none; }
+.reveal[open] > summary { margin-bottom:8px; }
+.item,.grp,.grp2 { border-top:1px solid var(--line); padding:10px 0; }
+.grp2 { display:flex; align-items:center; gap:8px; }
+.gx { min-width:0; flex:1; padding-left:10px; border-left:2px solid transparent; }
+.gx.ss { border-left-color:var(--accent); }
+.gx .nm { display:flex; align-items:center; min-height:32px; }
+.gx .nm span { min-width:0; flex:1; }
+.ghost { background:none; border-color:transparent; color:var(--muted); }
+.hdl { touch-action:none; cursor:grab; color:var(--muted); font-size:22px; padding:8px; user-select:none; }
+.drg { opacity:.45; }
+.tgt { box-shadow:0 -2px var(--accent); }
+.set {
+  display:grid; align-items:center; gap:6px; margin:6px 0;
+  grid-template-columns:1.5rem repeat(2,minmax(0,1fr)) calc(2 * var(--touch) + 4px);
+}
+.set.t { grid-template-columns:1.5rem minmax(0,1fr) calc(2 * var(--touch) + 4px); }
+.set input { padding-inline:6px; font-variant-numeric:tabular-nums; }
+.tm { font-size:clamp(1.65rem,7.5vw,2.75rem); font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.04em; }
+#tm { text-align:center; margin-bottom:8px; }
+.hd { color:var(--muted); font-size:.75rem; margin-top:12px; }
+.ch { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.dn { border-inline-start:3px solid var(--accent); }
+.letter {
+  position:sticky; top:calc(4px + env(safe-area-inset-top)); z-index:2; width:fit-content;
+  margin:10px 0 6px; padding:3px 10px; border-radius:8px;
+  font-weight:700; color:var(--accent); background:var(--raised);
+}
+.exercise-card .tag { flex:none; max-width:45%; }
+.mn { position:relative; z-index:3; flex:none; }
+.mn summary {
+  display:grid; place-items:center; list-style:none; width:var(--touch); height:var(--touch);
+  border:1px solid var(--line); border-radius:var(--control); background:var(--raised);
+}
+.menu,.sheet { background:var(--raised); }
+.menu { position:absolute; inset:calc(100% + 6px) 0 auto auto; padding:6px; min-width:180px; }
+.menu button { display:block; width:100%; text-align:left; border-color:transparent; background:none; }
+.sheet {
+  position:fixed; z-index:21; top:max(24px,12dvh,env(safe-area-inset-top)); left:12px; right:12px;
+  max-width:420px; max-height:calc(84dvh - env(safe-area-inset-bottom));
+  margin:auto; padding:clamp(16px,5vw,24px); overflow:auto;
+}
+.sheet-backdrop { position:fixed; inset:0; z-index:20; background:#080e1480; }
+.sheet .row { gap:6px; }
+.chart { display:block; width:100%; margin:8px 0; --chart:var(--accent); }
+.chat-user { margin-inline-start:clamp(14px,9vw,64px); border-inline-start:3px solid var(--accent); }
+.chat-coach { margin-inline-end:clamp(10px,5vw,40px); }
+@media (max-width:370px) {
+  .row { gap:7px; }
+  .card { padding-inline:12px; }
+  .filters { gap:6px; }
+  button { padding-inline:9px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { transition:none !important; animation:none !important; }
+}
 </style></head><body><div class="bg"></div><div id="app"></div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -164,13 +274,23 @@ async function seed(){
 }
 
 /* ---------- Views ---------- */
-const head=(t,back)=>`<div class="row" style="margin-bottom:14px">${back?'<button data-a="back">‹</button>':''}<h1 style="flex:1">${t}</h1>${back?'':'<button data-a="cog" class="ic" style="font-size:24px">⚙</button>'}</div>`;
-const login=()=>`<main style="padding-top:18vh"><div class="glass card"><h1>Workout Tracker</h1><p class="s">Sign in to your account.</p><input id="em" type="email" placeholder="Email" autocomplete="username"><div style="height:8px"></div><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div style="height:12px"></div><button class="p" data-a="login" style="width:100%">Sign in</button><p class="s" id="er"></p></div></main>`;
+const icons={
+ back:'M15 18l-6-6 6-6', down:'m6 9 6 6 6-6',
+ settings:'M4 7h16M4 17h16M9 4v6m6 4v6',
+ more:'M5 12h.01m7 0h.01m7 0h.01',
+ train:'M3 9v6m3-9v12m12-12v12m3-9v6M6 12h12',
+ ex:'M4 5h5a3 3 0 0 1 3 3v12a3 3 0 0 0-3-3H4zm16 0h-5a3 3 0 0 0-3 3v12a3 3 0 0 1 3-3h5z',
+ st:'M4 19h16M7 15v-4m5 4V8m5 7V4',
+ ai:'M12 2l2.8 7.2L22 12l-7.2 2.8L12 22l-2.8-7.2L2 12l7.2-2.8z'
+};
+const icon=k=>`<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${icons[k]}"/></svg>`;
+const head=(t,back)=>`<header class="row page-head">${back?`<button class="ic" data-a="back" aria-label="${S.lang=='fr'?'Retour':'Back'}">${icon('back')}</button>`:''}<h1>${t}</h1>${back?'':`<button data-a="cog" class="ic" aria-label="${S.lang=='fr'?'Réglages':'Settings'}">${icon('settings')}</button>`}</header>`;
+const login=()=>`<main class="login"><div class="glass card"><h1>Workout Tracker</h1><p class="s">Sign in to your account.</p><input id="em" type="email" placeholder="Email" autocomplete="username"><div style="height:8px"></div><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div style="height:12px"></div><button class="p" data-a="login" style="width:100%">Sign in</button><p class="s" id="er"></p></div></main>`;
 const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).join('');
 const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
 const groups=(P,c)=>{let i=0;return gz(P,c).map(k=>{const g=P[c].slice(i,i+k);i+=k;return g})};
 function catCard(P,c){const G=groups(P,c),n=P[c].length,ed=S.edit==c,op=ed||S.op[c];let b=0;
- const hd=`<div class="row"><div data-a="tgo" data-c="${c}" style="flex:1;padding:4px 0"><h2>${c=='upper'?'Upper':'Lower'} body</h2><div class="s">${n} exercises · ${G.length} blocks ${op?'▴':'▾'}</div></div><button class="p" data-a="start" data-c="${c}">Start</button></div>`;
+ const hd=`<div class="row program-head"><button class="program-toggle" data-a="tgo" data-c="${c}" aria-expanded="${Boolean(op)}"><span><span class="big">${c=='upper'?'Upper':'Lower'} body</span><span class="s">${n} exercise${n===1?'':'s'} · ${G.length} block${G.length===1?'':'s'}</span></span>${icon('down')}</button><button class="p" data-a="start" data-c="${c}">Start</button></div>`;
  if(!op)return `<div class="glass card" data-card="${c}">${hd}</div>`;
  const body=G.map((g,gi)=>{const o=b;b+=g.length;return `<div class="grp2" data-g="${gi}">${ed?`<span class="hdl" data-drag="${gi}" data-c="${c}">⠿</span>`:''}<div class="gx ${g.length>1?'ss':''}">${g.map((id,j)=>{const e=exOf(id);return `<div class="nm"><span>${e?esc(e.nameEn):'?'}</span>${ed?`<button class="ic" data-a="rm" data-c="${c}" data-i="${o+j}">✕</button>`:''}</div>`}).join('')}`+
   (ed?(g.length>1?`<button class="ghost" data-a="unl" data-c="${c}" data-g="${gi}">Unlink superset</button>`:G[gi+1]&&G[gi+1].length==1?`<button class="ghost" data-a="lnk" data-c="${c}" data-g="${gi}">Link with next ⛓</button>`:''):'')+`</div></div>`}).join('');
@@ -185,18 +305,18 @@ document.addEventListener('pointerup',drEnd);document.addEventListener('pointerc
 function train(){
  const P=prog();
  if(!P)return head('My Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
- return head('Training')+(S.draft?draftCard():'')+`<div class="row" style="margin-bottom:14px"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary>⋯</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
+ return head('Training')+(S.draft?draftCard():'')+`<div class="row program-picker"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary aria-label="${S.lang=='fr'?'Options du programme':'Program options'}">${icon('more')}</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
 const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),dn=e=>S.lang=='fr'&&e.nameFr?e.nameFr:e.nameEn;
-const exCard=e=>`<div class="glass card" data-a="hist" data-id="${e.id}" style="padding:12px 16px;margin-bottom:10px"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s"><span>${esc(e.muscles||'')}</span>${e.type=='time'?'<span> · Timed</span>':''}</div></div>`;
+const exCard=e=>`<div class="glass card exercise-card" data-a="hist" data-id="${e.id}"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s"><span>${esc(e.muscles||'')}</span>${e.type=='time'?'<span> · Timed</span>':''}</div></div>`;
 const exList=()=>{const q=nz(S.q.trim()),fr=S.lang=='fr',L=S.ex.filter(e=>(S.f=='all'||(S.f=='eq')==e.equipment)&&nz([e.nameEn,e.muscles,fr?e.nameFr:'',fr?e.musclesFr:''].join(' ')).includes(q)).sort((a,b)=>nz(dn(a)).localeCompare(nz(dn(b))));
  let c='',h='';L.forEach(e=>{const l=(nz(dn(e))[0]||'#').toUpperCase(),k=/[A-Z]/.test(l)?l:'#';if(k!=c){c=k;h+=`<div class="letter">${k}</div>`}h+=exCard(e)});return h||'<p class="s">No exercise found.</p>'};
-const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search by name or muscle" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row" style="margin-bottom:12px">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
-<details class="glass card"><summary>New exercise</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
+const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search by name or muscle" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row filters">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
+<details class="glass card reveal"><summary><span>New exercise</span>${icon('down')}</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
 async function loadSt(){try{const[a,b]=await Promise.all([getDocs(col('workouts')),getDocs(col('exercise_logs'))]);S.ws=a.docs.map(d=>d.data());S.lg=b.docs.map(d=>d.data());if(S.tab=='st'&&!S.view)R()}catch(e){alert('Could not load statistics: '+e.message)}}
 const wk=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime()};
-const chart=pts=>{if(pts.length<2)return '<div class="s">Log at least 2 sessions in this period to see a chart.</div>';const mx=Math.max(...pts),mn=Math.min(...pts),xy=pts.map((v,i)=>[12+i*276/(pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);return `<svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#e39a6e" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#e39a6e"/>`).join('')}</svg>`};
+const chart=pts=>{if(pts.length<2)return '<div class="s">Log at least 2 sessions in this period to see a chart.</div>';const mx=Math.max(...pts),mn=Math.min(...pts),xy=pts.map((v,i)=>[12+i*276/(pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);return `<svg viewBox="0 0 300 70" class="chart"><polyline fill="none" stroke="var(--chart)" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="var(--chart)"/>`).join('')}</svg>`};
 function stats(){
  if(!S.ws)return head('Statistics')+'<div class="glass card"><p class="s">Loading…</p></div>';
  const days=S.sp??30,now=Date.now(),cut=days?new Date(now-days*864e5).toISOString():'',inP=l=>l.date>=cut,ws=S.ws.filter(inP),lg=S.lg.filter(inP);
@@ -206,7 +326,7 @@ function stats(){
  const vol=Math.round(lg.reduce((a,l)=>a+l.sets.reduce((b,x)=>b+(x.kg>0?x.r*x.kg:0),0),0));
  const W8=Array.from({length:8},(_,i)=>wk(w0-(7-i)*6048e5+432e5)),cnt=W8.map(t=>S.ws.filter(w=>wk(w.date)==t).length),mx=Math.max(1,...cnt);
  const a4=cnt.slice(4).reduce((a,b)=>a+b,0),b4=cnt.slice(0,4).reduce((a,b)=>a+b,0),tr=a4>b4?'Up':a4<b4?'Down':'Steady';
- const bars=cnt.map((c,i)=>{const h=c/mx*45,d=new Date(W8[i]);return `<rect x="${12+i*36}" y="${58-h}" width="28" height="${h}" rx="6" fill="#e39a6e" opacity=".85"/><text x="${26+i*36}" y="${52-h}" text-anchor="middle" font-size="10" fill="currentColor">${c}</text><text x="${26+i*36}" y="72" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${d.getDate()}/${d.getMonth()+1}</text>`}).join('');
+ const bars=cnt.map((c,i)=>{const h=c/mx*45,d=new Date(W8[i]);return `<rect x="${12+i*36}" y="${58-h}" width="28" height="${h}" rx="6" fill="var(--chart)" opacity=".85"/><text x="${26+i*36}" y="${52-h}" text-anchor="middle" font-size="10" fill="currentColor">${c}</text><text x="${26+i*36}" y="72" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${d.getDate()}/${d.getMonth()+1}</text>`}).join('');
  const ids=[...new Set(S.lg.map(l=>l.exerciseId))].filter(exOf).sort((x,y)=>exOf(x).nameEn.localeCompare(exOf(y).nameEn)),sel=ids.includes(S.sel)?S.sel:ids[0];
  let prog='<p class="s">Log a workout to see your progress.</p>';
  if(sel){const e=exOf(sel),t=e.type=='time',all=S.lg.filter(l=>l.exerciseId==sel),hw=all.some(l=>l.sets.some(x=>x.kg>0)),u=t?'s':hw?'kg':'reps',sets=all.flatMap(l=>l.sets);
@@ -214,9 +334,9 @@ function stats(){
   const e1=hw?Math.round(Math.max(...sets.filter(x=>x.kg>0).map(x=>x.kg*(1+x.r/30)))):0,cell=(v,l)=>`<div style="flex:1"><div class="big">${v}</div><div class="s">${l}</div></div>`;
   prog=`<select id="ss">${ids.map(id=>`<option value="${id}" ${id==sel?'selected':''}>${esc(exOf(id).nameEn)}</option>`).join('')}</select><div class="s" style="margin:12px 0 4px">Top ${t?'time':hw?'weight':'reps'} per session</div>${chart(pts)}<div class="row" style="text-align:center;margin-top:10px">${t?cell(Math.max(...sets.map(x=>x.s))+' s','Best time'):hw?cell(Math.max(...sets.map(x=>x.kg||0))+' kg','Best weight')+cell(Math.max(...sets.map(x=>x.r))+' reps','Best reps')+cell(e1+' kg','Est. 1RM'):cell(Math.max(...sets.map(x=>x.r))+' reps','Best reps')}</div><button data-a="hist" data-id="${sel}" style="width:100%;margin-top:12px">Open exercise sheet</button>`}
  const cell=(v,l)=>`<div style="flex:1"><div class="big">${v}</div><div class="s">${l}</div></div>`;
- return head('Statistics')+`<div class="row" style="margin-bottom:12px;flex-wrap:wrap">${[[30,'30 days'],[90,'3 months'],[180,'6 months'],[365,'1 year'],[0,'All']].map(([k,l])=>`<button data-a="sp" data-k="${k}" class="${days==k?'p':''}">${l}</button>`).join('')}</div>`+
+ return head('Statistics')+`<div class="row filters">${[[30,'30 days'],[90,'3 months'],[180,'6 months'],[365,'1 year'],[0,'All']].map(([k,l])=>`<button data-a="sp" data-k="${k}" class="${days==k?'p':''}">${l}</button>`).join('')}</div>`+
  `<div class="glass card"><div class="row" style="text-align:center">${cell(nW,'This week')}${cell(nM,'This month')}${cell(avg,'Per week')}</div><div class="s" style="margin-top:10px">${ws.length} sessions in this period · ${vol} kg lifted (weighted sets only, bodyweight sets not counted)</div></div>`+
- `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" style="width:100%">${bars}</svg></div>`+
+ `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" class="chart">${bars}</svg></div>`+
  `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`+
  `<div class="glass card"><h2>Export your data</h2><div class="s" style="margin:4px 0 10px">JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.</div><div class="row"><button class="p" data-a="expj" style="flex:1">Export JSON</button><button data-a="expc" style="flex:1">Export CSV</button></div></div>`}
 const exByName=n=>S.ex.find(e=>e.nameEn.toLowerCase()==String(n).toLowerCase());
@@ -225,7 +345,7 @@ const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.l
  return JSON.stringify({library:S.ex.map(e=>e.nameEn+(e.type=='time'?' (timed)':'')),activeProgram:P&&{name:P.name,upper:groups(P,'upper').map(g=>g.map(nm)),lower:groups(P,'lower').map(g=>g.map(nm))},
  recent:ids.map(id=>{const L=(S.lg||[]).filter(l=>l.exerciseId==id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);return nm(id)&&L.length?{exercise:nm(id),last:L.map(l=>l.date.slice(0,10)+': '+l.sets.map(fs).join(', '))}:null}).filter(Boolean)})};
 const prop=(m,i)=>`<div class="grp"><div class="big">${esc(m.p.name||'Program')}</div>`+['upper','lower'].map(c=>`<div class="s" style="margin-top:6px">${c.toUpperCase()}</div>`+(m.p[c]||[]).map(g=>`<div>${[].concat(g).map(esc).join(' + ')}</div>`).join('')).join('')+`<div class="row" style="margin-top:10px"><button class="p" data-a="okp" data-i="${i}" style="flex:1">Add as new program</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`;
-const msg=(m,i)=>`<div class="glass card" style="${m.r=='user'?'margin-left:36px':'margin-right:16px'}"><div style="white-space:pre-wrap">${esc(m.t)}</div>${m.p?prop(m,i):''}${m.sw?`<div class="grp"><div class="s">Replace in your active program</div><div class="big">${esc(m.sw.from)} → ${esc(m.sw.to)}</div><div class="row"><button class="p" data-a="oks" data-i="${i}" style="flex:1">Confirm</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`:''}</div>`;
+const msg=(m,i)=>`<div class="glass card ${m.r=='user'?'chat-user':'chat-coach'}"><div style="white-space:pre-wrap">${esc(m.t)}</div>${m.p?prop(m,i):''}${m.sw?`<div class="grp"><div class="s">Replace in your active program</div><div class="big">${esc(m.sw.from)} → ${esc(m.sw.to)}</div><div class="row"><button class="p" data-a="oks" data-i="${i}" style="flex:1">Confirm</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`:''}</div>`;
 const ai=()=>!S.aiUrl?head('AI Coach')+`<div class="glass card"><p>Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.</p><input id="aiu" placeholder="https://workout-coach.xxx.workers.dev"><div style="height:8px"></div><button class="p" data-a="aiurl">Save</button></div>`:
  head('AI Coach')+`${S.usage?'<div class="s" style="margin-bottom:6px">AI requests today: '+S.usage.used+' / '+S.usage.limit+'</div>':''}<div class="s" style="margin-bottom:10px">Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.</div>`+(S.chat.length?'':'<div class="glass card"><div class="s">Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.</div></div>')+S.chat.map(msg).join('')+(S.busy?'<div class="s">Thinking…</div>':'')+`<div class="glass card"><input id="ai-in" placeholder="Ask your coach…"><div style="height:8px"></div><button class="p" data-a="send" style="width:100%">Send</button></div>`;
 const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():ai();
@@ -242,9 +362,12 @@ function hist(){const e=exOf(S.view.hist),t=e.type=='time',L=S.h,hw=L.some(l=>l.
  const used=S.pr.filter(p=>p.upper.includes(e.id)||p.lower.includes(e.id)).map(p=>esc(p.name)).join(', ');
  const sd=d=>new Date(d).toLocaleDateString(LOC(),{day:'numeric',month:'short'});
  return head(esc(e.nameEn),1)+`<p class="s" style="margin-top:-8px"><button data-a="ren" data-id="${e.id}">Rename</button></p>${tipsHtml(e,1)}<div class="glass card"><div class="row" style="text-align:center"><div style="flex:1"><div class="big">${L.length}</div><div class="s">Sessions</div></div><div style="flex:1"><div class="big">${L.length?mx+' '+u:'–'}</div><div class="s">Best</div></div><div style="flex:1"><div class="big">${L.length?sd(L[0].date):'–'}</div><div class="s">Last</div></div></div>`+
- (pts.length>1?`<div class="s" style="margin-top:12px">Top ${t?'time':hw?'weight':'reps'} per session</div><svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#e39a6e" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#e39a6e"/>`).join('')}</svg>`:'<div class="s" style="margin-top:12px">Log at least 2 sessions to see a chart.</div>')+
+ (pts.length>1?`<div class="s" style="margin-top:12px">Top ${t?'time':hw?'weight':'reps'} per session</div><svg viewBox="0 0 300 70" class="chart"><polyline fill="none" stroke="var(--chart)" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="var(--chart)"/>`).join('')}</svg>`:'<div class="s" style="margin-top:12px">Log at least 2 sessions to see a chart.</div>')+
  `<div class="s">Used in: ${used||'no program'}</div></div><div class="glass card">`+(L.map(l=>`<div class="item"><b>${fd(l.date)}</b>${l.imported?' <span class="tag">imported</span>':''}<div class="ch">${l.sets.map(x=>`<span class="tag">${fs(x)}</span>`).join('')}</div><div class="s">${hw?'Volume: '+l.sets.reduce((a,x)=>a+x.r*x.kg,0)+' kg':''}${l.duration?' · Time: '+fm(l.duration*1000):''}</div></div>`).join('')||'<p class="s">No history yet.</p>')+`</div>`}
-const nav=()=>`<nav class="glass">${[['train','🏋️','My Training'],['ex','📖','Exercises'],['st','📊','Statistics'],['ai','✨','AI Coach']].map(([k,i,l])=>`<button data-a="tab" data-t="${k}" class="${S.tab==k&&!S.view?'on':''}">${i}<br>${l}</button>`).join('')}</nav>`;
+const nav=()=>`<nav class="glass">${[['train','My Training'],['ex','Exercises'],['st','Statistics'],['ai','AI Coach']].map(([k,l])=>{
+ const current=S.tab==k&&!S.view;
+ return `<button data-a="tab" data-t="${k}" ${current?'class="on" aria-current="page"':''}>${icon(k)}<span>${l}</span></button>`
+}).join('')}</nav>`;
 function R(){const a=$('#app');saveDraft();if(!S.u){a.innerHTML=login();tr();return}
  const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()+(S.cfg?sheet():'');tr()}
 
@@ -267,7 +390,7 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 /* ---------- Tips ---------- */
 const tipsHtml=(e,full)=>{const l=e.tips?`<ul style="margin:6px 0;padding-left:20px">${e.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:'<div class="s" style="margin:6px 0">Tips are being prepared…</div>',
  b=`<div class="row"><button data-a="demo" data-id="${e.id}" style="flex:1">▶ Demo video</button>${full&&e.tips?`<button data-a="tipe" data-id="${e.id}" style="flex:1">Edit tips</button>`:''}</div>`;
- return full?`<div class="glass card"><h2>How to</h2><div class="s">${esc(e.muscles||'')}</div>${l}${e.tips&&!e.tipsEdited?'<div class="s" style="margin-bottom:8px">AI-generated: double-check the technique.</div>':''}${b}</div>`:`<details style="margin:6px 0"><summary class="s">ⓘ Tips &amp; demo</summary>${l}${b}</details>`};
+ return full?`<div class="glass card"><h2>How to</h2><div class="s">${esc(e.muscles||'')}</div>${l}${e.tips&&!e.tipsEdited?'<div class="s" style="margin-bottom:8px">AI-generated: double-check the technique.</div>':''}${b}</div>`:`<details class="reveal"><summary class="s"><span>ⓘ Tips &amp; demo</span>${icon('down')}</summary>${l}${b}</details>`};
 async function genTips(){if(S.gen||!S.aiUrl)return;S.gen=1;S.sk=S.sk||{};
  try{while(1){const m=S.ex.filter(e=>!e.tips&&!S.sk[e.id]).slice(0,8);if(!m.length)break;
   const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({mode:'tips',names:m.map(e=>e.nameEn)})});
@@ -278,15 +401,15 @@ async function genTips(){if(S.gen||!S.aiUrl)return;S.gen=1;S.sk=S.sk||{};
   if(!S.view&&S.tab=='ex')R()}}catch(e){}S.gen=0}
 /* ---------- Settings, theme, language ---------- */
 const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}};
-const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#f4efe9':'#131110'};
+const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#edf4f2':'#101619'};
 S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
 const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
-const sheet=()=>`<div data-a="cog" style="position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.45)"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div class="s" style="margin:12px 0 6px">Rest timer</div><div class="row">${[0,60,90,120].map(k=>`<button data-a="rest" data-k="${k}" class="${S.rest==k?'p':''}" style="flex:1;padding:0">${k?k+' s':'Off'}</button>`).join('')}</div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button></div>`;
-const FR={'Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Search by name or muscle':'Rechercher par nom ou muscle','Workout':'Séance','Rest':'Repos','Skip':'Passer','Rest timer':'Chrono de repos','Off':'Désactivé','Workout in progress':'Séance en cours','Resume workout':'Reprendre la séance','Discard':'Abandonner','Discard this workout in progress?':'Abandonner la séance en cours ?','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
+const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div class="s" style="margin:12px 0 6px">Rest timer</div><div class="row">${[0,60,90,120].map(k=>`<button data-a="rest" data-k="${k}" class="${S.rest==k?'p':''}" style="flex:1;padding:0">${k?k+' s':'Off'}</button>`).join('')}</div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button></div>`;
+const FR={'My Training':'Mon entraînement','Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Search by name or muscle':'Rechercher par nom ou muscle','Workout':'Séance','Rest':'Repos','Skip':'Passer','Rest timer':'Chrono de repos','Off':'Désactivé','Workout in progress':'Séance en cours','Resume workout':'Reprendre la séance','Discard':'Abandonner','Discard this workout in progress?':'Abandonner la séance en cours ?','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
 'Add at least one set.':'Ajoute au moins une série.','Enter an English name.':'Saisis un nom en anglais.','Enter the full https:// address.':'Saisis l’adresse complète en https://.','Exercise not found in your library.':'Exercice introuvable dans ta bibliothèque.','That exercise is not in the active program.':'Cet exercice n’est pas dans le programme actif.','This exercise already exists.':'Cet exercice existe déjà.','This name already exists.':'Ce nom existe déjà.','You need at least one program.':'Il faut au moins un programme.','Leave this workout? Saved exercises are kept.':'Quitter cette séance ? Les exercices enregistrés sont conservés.','Remove this exercise from the program? Your history is kept.':'Retirer cet exercice du programme ? Ton historique est conservé.','Name of the new program':'Nom du nouveau programme','New name':'Nouveau nom','Your tips, separated by |':'Tes conseils, séparés par |'};
 const RX=[[/^AI requests today: (\d+) \/ (\d+)$/,'Requêtes IA aujourd’hui : $1 / $2'],[/^⚠ Daily AI limit reached \((\d+)\/(\d+)\)\. It resets tomorrow\.$/,'⚠ Limite quotidienne de l’IA atteinte ($1/$2). Elle repart demain.'],
 [/^· (\d+) saved$/,'· $1 enregistré(s)'],
-[/^(\d+) exercises · (\d+) blocks ([▴▾])$/,'$1 exercices · $2 blocs $3'],
+[/^(\d+) exercises? · (\d+) blocks?$/,(m,n,b)=>`${n} exercice${n==='1'?'':'s'} · ${b} bloc${b==='1'?'':'s'}`],
 [/^(\d+) sessions in this period · (\d+) kg lifted \(.*\)$/,'$1 séances sur la période · $2 kg soulevés (séries lestées uniquement, poids du corps non compté)'],
 [/^Sessions per week, last 8 weeks · (Up|Down|Steady) vs the previous 4 weeks$/,(m,a)=>`Séances par semaine, 8 dernières semaines · ${{Up:'en hausse',Down:'en baisse',Steady:'stable'}[a]} vs les 4 semaines précédentes`],
 [/^Top (time|weight|reps) per session$/,(m,a)=>`Meilleur ${{time:'temps',weight:'poids',reps:'nombre de reps'}[a]} par séance`],
