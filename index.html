@@ -584,7 +584,7 @@ function todoSettings(){
     <p class="s">${connected?'Connectée sur cet appareil.':'Connecte le compte Google de ta to-do list.'}
     ${link?.pending.length?`Séances en attente : ${link.pending.length}.`:''}</p>
     <div class="row filters"><button data-a="todo-connect" ${todoBusy?'disabled':''}>${connected?'Relier les tâches':'Connecter ma to-do list'}</button>
-    ${connected?`<button data-a="todo-recover" ${todoBusy?'disabled':''}>Reprendre la dernière séance</button>`:''}
+    ${connected?`<button data-a="todo-recover" ${todoBusy?'disabled':''}>Synchroniser la dernière séance</button>`:''}
     ${connected&&link.pending.length?`<button data-a="todo-sync" ${todoBusy?'disabled':''}>Réessayer</button>`:''}</div>
     ${todoMessage?`<p class="s" role="status">${esc(todoMessage)}</p>`:''}</div>`;
 }
