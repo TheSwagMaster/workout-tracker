@@ -168,11 +168,21 @@ nav button.on { background:var(--field); color:var(--accent); border-color:var(-
 </style></head><body><div class="bg"></div><div id="app"></div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {initializeFirestore,persistentLocalCache,collection,doc,getDocs,getDoc,setDoc,deleteDoc,updateDoc,query,where,writeBatch} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,GoogleAuthProvider,signInWithPopup} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,collection,doc,getDocs,getDoc,setDoc,deleteDoc,updateDoc,query,where,writeBatch,getFirestore,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={apiKey:"AIzaSyA4rP3w3WcTYIDSfUw_py0Sa22EvDli2ao",authDomain:"personal-workout-tracker-ce007.firebaseapp.com",projectId:"personal-workout-tracker-ce007",storageBucket:"personal-workout-tracker-ce007.firebasestorage.app",messagingSenderId:"960475930805",appId:"1:960475930805:web:cde480d99a4b9dd6575efc"};
 const app=initializeApp(cfg),auth=getAuth(app),db=initializeFirestore(app,{localCache:persistentLocalCache()});
+const todoConfig={
+  apiKey: "AIzaSyCAhmpuufM-yZz6CT3Io6NzJ8FWF5G8cbQ",
+  authDomain: "todo-list-9c064.firebaseapp.com",
+  projectId: "todo-list-9c064",
+  storageBucket: "todo-list-9c064.firebasestorage.app",
+  messagingSenderId: "621993044137",
+  appId: "1:621993044137:web:8799d56cd1f3865d1b61b8"
+};
+const todoApp=initializeApp(todoConfig,'workout-todo');
+const todoAuth=getAuth(todoApp),todoDb=getFirestore(todoApp);
 const col=n=>collection(db,n),$=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -404,7 +414,7 @@ const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorag
 const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#edf4f2':'#101619'};
 S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
 const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
-const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div class="s" style="margin:12px 0 6px">Rest timer</div><div class="row">${[0,60,90,120].map(k=>`<button data-a="rest" data-k="${k}" class="${S.rest==k?'p':''}" style="flex:1;padding:0">${k?k+' s':'Off'}</button>`).join('')}</div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button></div>`;
+const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div class="s" style="margin:12px 0 6px">Rest timer</div><div class="row">${[0,60,90,120].map(k=>`<button data-a="rest" data-k="${k}" class="${S.rest==k?'p':''}" style="flex:1;padding:0">${k?k+' s':'Off'}</button>`).join('')}</div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button>${todoSettings()}</div>`;
 const FR={'My Training':'Mon entraînement','Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Search by name or muscle':'Rechercher par nom ou muscle','Workout':'Séance','Rest':'Repos','Skip':'Passer','Rest timer':'Chrono de repos','Off':'Désactivé','Workout in progress':'Séance en cours','Resume workout':'Reprendre la séance','Discard':'Abandonner','Discard this workout in progress?':'Abandonner la séance en cours ?','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
 'Add at least one set.':'Ajoute au moins une série.','Enter an English name.':'Saisis un nom en anglais.','Enter the full https:// address.':'Saisis l’adresse complète en https://.','Exercise not found in your library.':'Exercice introuvable dans ta bibliothèque.','That exercise is not in the active program.':'Cet exercice n’est pas dans le programme actif.','This exercise already exists.':'Cet exercice existe déjà.','This name already exists.':'Ce nom existe déjà.','You need at least one program.':'Il faut au moins un programme.','Leave this workout? Saved exercises are kept.':'Quitter cette séance ? Les exercices enregistrés sont conservés.','Remove this exercise from the program? Your history is kept.':'Retirer cet exercice du programme ? Ton historique est conservé.','Name of the new program':'Nom du nouveau programme','New name':'Nouveau nom','Your tips, separated by |':'Tes conseils, séparés par |'};
 const RX=[[/^AI requests today: (\d+) \/ (\d+)$/,'Requêtes IA aujourd’hui : $1 / $2'],[/^⚠ Daily AI limit reached \((\d+)\/(\d+)\)\. It resets tomorrow\.$/,'⚠ Limite quotidienne de l’IA atteinte ($1/$2). Elle repart demain.'],
@@ -426,10 +436,118 @@ const _a=window.alert.bind(window),_c=window.confirm.bind(window),_p=window.prom
 window.alert=m=>_a(T2(m));window.confirm=m=>_c(T2(m));window.prompt=(m,d)=>_p(T2(m),d);
 /* ---------- Brouillon de séance ---------- */
 const DK='wt_draft',delDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
-function saveDraft(){try{if(W)localStorage.setItem(DK,JSON.stringify({W,v:S.view&&S.view.ex?{ex:S.view.ex}:{ses:1},sets:S.sets,T:{acc:T.acc,st:T.st},dirty:S.dirty,uid:S.u&&S.u.uid,t:Date.now()}));else if(!S.draft&&S.u)delDraft()}catch(e){}}
+function saveDraft(){try{if(W)localStorage.setItem(DK,JSON.stringify({W:{...W,ref:null,workoutId:W.workoutId||W.ref?.id||null},v:S.view&&S.view.ex?{ex:S.view.ex}:{ses:1},sets:S.sets,T:{acc:T.acc,st:T.st},dirty:S.dirty,uid:S.u&&S.u.uid,t:Date.now()}));else if(!S.draft&&S.u)delDraft()}catch(e){}}
 const draftCard=()=>{const d=S.draft;return `<div class="glass card"><h2>Workout in progress</h2><div class="s"><span>${d.W.cat=='upper'?'Upper body':'Lower body'}</span><span> · ${Object.keys(d.W.done||{}).length} saved</span></div><div style="height:10px"></div><div class="row"><button class="p" data-a="resume" style="flex:1">Resume workout</button><button data-a="disc" style="flex:1">Discard</button></div></div>`};
 addEventListener('input',()=>setTimeout(saveDraft,0));
 addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft()});addEventListener('pagehide',saveDraft);
+/* ---------- Synchronisation des séances terminées ---------- */
+const todoNames=['Upper A','Upper B','Lower A','Lower B'];
+const todoKey=uid=>`wt_todo_${uid}`;
+const todoState=()=>{
+  try { return JSON.parse(LS(todoKey(S.u?.uid))||'null'); } catch { return null; }
+};
+const saveTodoState=(uid,state)=>localStorage.setItem(todoKey(uid),JSON.stringify(state));
+let todoBusy=false,todoMessage='';
+function todoWeek(ts){
+  const d=new Date(ts);
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-(d.getDay()+6)%7);
+  return d.getTime();
+}
+async function connectTodo(){
+  if(!S.u||todoBusy)return;
+  const trackerUid=S.u.uid;
+  todoBusy=true;todoMessage='';R();
+  try{
+    const {user}=await signInWithPopup(todoAuth,new GoogleAuthProvider());
+    if(S.u?.uid!==trackerUid)return;
+    const userRoot=doc(todoDb,'users',user.uid);
+    const [config,tasks]=await Promise.all([
+      getDoc(doc(userRoot,'meta','config')),getDocs(collection(userRoot,'tasks'))
+    ]);
+    if(S.u?.uid!==trackerUid)return;
+    const sports=(config.data()?.domains||[]).filter(d=>d.name.trim().toLowerCase()==='sport');
+    if(sports.length!==1)throw new Error('sport');
+    const mapped=Object.fromEntries(todoNames.map(name=>{
+      const matches=tasks.docs.filter(task=>{
+        const t=task.data();
+        return t.domainId===sports[0].id&&t.text.trim().toLowerCase()===name.toLowerCase()
+          &&(t.repeat==='weekly'||(!t.repeat&&t.perWeek>0));
+      });
+      if(matches.length!==1)throw new Error('tasks');
+      return [name,matches[0].id];
+    }));
+    const previous=todoState();
+    saveTodoState(trackerUid,{uid:user.uid,mapped,pending:previous?.uid===user.uid?previous.pending:[]});
+    todoMessage='To-do list connectée.';
+  }catch(e){
+    todoMessage=e.message==='sport'||e.message==='tasks'
+      ?'Il faut une catégorie Sport avec les quatre tâches hebdomadaires Upper A, Upper B, Lower A et Lower B.'
+      :'Connexion à la to-do list impossible. Vérifie le compte Google utilisé.';
+  }finally{todoBusy=false;R();if(todoMessage==='To-do list connectée.')void syncTodo();}
+}
+async function checkTodoWorkout(root,mapped,workout){
+  const week=todoWeek(workout.at);
+  const state=doc(root,'workout_sync',`${week}-${workout.category}`);
+  return runTransaction(todoDb,async tx=>{
+    const snapshot=await tx.get(state);
+    const seen=snapshot.data()?.workouts||[];
+    if(seen.includes(workout.id)||seen.length>=2)return;
+    const prefix=workout.category==='upper'?'Upper':'Lower';
+    const task=doc(root,'tasks',mapped[`${prefix} ${seen.length?'B':'A'}`]);
+    const target=(await tx.get(task)).data();
+    if(!target||(target.repeat!=='weekly'&&(target.repeat||!(target.perWeek>0))))throw new Error('task');
+    // Une séance en attente de la semaine passée ne doit pas modifier une case actuelle.
+    if(week===todoWeek(Date.now())&&!(target.done&&target.doneAt>=week)){
+      const log=doc(collection(root,'logs'));
+      tx.set(log,{domainId:target.domainId,note:target.text,taskId:task.id,ts:workout.at});
+      tx.update(task,{done:true,doneAt:workout.at,logId:log.id});
+    }
+    tx.set(state,{workouts:[...seen,workout.id]});
+  });
+}
+async function syncTodo(){
+  if(todoBusy||!S.u||!todoAuth.currentUser||!navigator.onLine)return;
+  const trackerUid=S.u.uid,link=todoState();
+  if(!link?.pending.length||link.uid!==todoAuth.currentUser.uid)return;
+  todoBusy=true;
+  try{
+    const root=doc(todoDb,'users',link.uid);
+    while(S.u?.uid===trackerUid&&todoAuth.currentUser?.uid===link.uid){
+      const current=todoState();
+      if(current?.uid!==link.uid||!current.pending.length)break;
+      const workout=current.pending[0];
+      await checkTodoWorkout(root,current.mapped,workout);
+      if(S.u?.uid!==trackerUid)break;
+      const latest=todoState();
+      if(latest?.uid===link.uid)saveTodoState(trackerUid,{...latest,pending:latest.pending.filter(w=>w.id!==workout.id)});
+    }
+    todoMessage='Synchronisation terminée.';
+  }catch{todoMessage='Synchronisation en attente. Vérifie la connexion et les tâches liées.';}
+  finally{todoBusy=false;if(S.cfg)R();}
+}
+function queueTodoWorkout(workout){
+  const link=todoState();
+  if(!link||!workout?.made||!Object.keys(workout.done||{}).length)return;
+  const id=workout.ref?.id||workout.workoutId;
+  if(!id||!['upper','lower'].includes(workout.cat)||link.pending.some(w=>w.id===id))return;
+  try{
+    saveTodoState(S.u.uid,{...link,pending:[...link.pending,{id,category:workout.cat,at:Date.now()}]});
+    void syncTodo();
+  }catch{todoMessage='Impossible de conserver la séance à synchroniser sur cet appareil.';alert(todoMessage);}
+}
+function todoSettings(){
+  const link=todoState(),connected=link&&todoAuth.currentUser?.uid===link.uid;
+  return `<div class="grp" style="margin-top:14px"><h2>Synchronisation To-do list</h2>
+    <p class="s">${connected?'Connectée sur cet appareil.':'Connecte le compte Google de ta to-do list.'}
+    ${link?.pending.length?`Séances en attente : ${link.pending.length}.`:''}</p>
+    <div class="row"><button data-a="todo-connect" ${todoBusy?'disabled':''}>${connected?'Relier les tâches':'Connecter ma to-do list'}</button>
+    ${connected&&link.pending.length?`<button data-a="todo-sync" ${todoBusy?'disabled':''}>Réessayer</button>`:''}</div>
+    ${todoMessage?`<p class="s" role="status">${esc(todoMessage)}</p>`:''}</div>`;
+}
+onAuthStateChanged(todoAuth,()=>{if(S.cfg)R();void syncTodo();});
+addEventListener('online',()=>void syncTodo());
+addEventListener('pageshow',()=>void syncTodo());
 /* ---------- Repos et chrono global ---------- */
 let RT=null,AC=null;const _r=LS('wt_rest');S.rest=_r===null?90:+_r;
 const unlock=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}};
@@ -438,7 +556,9 @@ const topBar=()=>`<div class="row" style="justify-content:space-between;margin:-
 async function loadUsage(){if(!S.aiUrl||S.usg)return;S.usg=1;try{const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({mode:'usage'})});if(r.ok){const d=await r.json();if(d.usage){S.usage=d.usage;if(S.tab=='ai'&&!S.view)R()}}}catch(e){}S.usg=0}
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
- out:()=>{S.cfg=0;signOut(auth)},
+ out:()=>{S.cfg=0;todoMessage='';void signOut(todoAuth).catch(()=>{});signOut(auth)},
+ 'todo-connect':connectTodo,
+ 'todo-sync':syncTodo,
  cog:()=>{S.cfg=!S.cfg;R()},
  lang:d=>{S.lang=d.l;LS('wt_lang',d.l);document.documentElement.lang=d.l;R()},
  th:d=>{S.th=d.k;LS('wt_th',d.k);applyTh();R()},
@@ -476,7 +596,11 @@ const A={
  save:()=>{pause();const now=new Date().toISOString(),out=[];
   S.view.ex.forEach(id=>{const t=exOf(id).type=='time',sets=S.sets[id].map(s=>t?{s:+s.s}:{r:+s.r,kg:+s.kg||0}).filter(s=>s.s>0||s.r>0);if(sets.length)out.push([id,sets])});
   if(!out.length)return alert('Add at least one set.');
-  if(!W.ref)W.ref=doc(col('workouts'));
+  if(!W.ref?.firestore){
+    const savedId=W.workoutId||W.ref?.id;
+    W.ref=savedId?doc(col('workouts'),savedId):doc(col('workouts'));
+  }
+  W.workoutId=W.ref.id;
   if(!W.made){setDoc(W.ref,{date:now,programId:W.pid,category:W.cat}).catch(e=>alert(e.message));W.made=true}
   setDoc(W.ref,{duration:Math.round((Date.now()-(W.t0||Date.now()))/1000)},{merge:true}).catch(()=>{});
   out.forEach(([id,sets])=>{setDoc(doc(col('exercise_logs')),{exerciseId:id,workoutId:W.ref.id,date:now,sets,duration:Math.round(el()/1000),superset:S.view.ex.length>1}).catch(e=>alert(e.message));W.done[id]=1});
@@ -501,7 +625,7 @@ const A={
  oks:async d=>{const m=S.chat[+d.i],w=m.sw,P=prog(),f=exByName(w.from);if(!f)return alert('Exercise not found in your library.');const id=await ensure(w.to,m.nw);let ok=0;
   for(const c of['upper','lower']){const i=P[c].indexOf(f.id);if(i>=0){P[c][i]=id;await saveP(P,c);ok=1}}
   if(!ok)return alert('That exercise is not in the active program.');m.sw=null;R()},
- fin:()=>{W=null;RT=null;S.view=null;S.tab='train';R()},
+ fin:()=>{queueTodoWorkout(W);W=null;RT=null;S.view=null;S.tab='train';R()},
  back:()=>{const v=S.view;if(v.ex)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;RT=null;S.view=null}R()},
  hist:async d=>{S.h=await logs(d.id);S.view={hist:d.id};R()},
  flt:d=>{S.f=d.k;R()},
@@ -521,5 +645,5 @@ addEventListener('touchend',e=>{if(!SW)return;const t=e.changedTouches[0],dx=t.c
 setInterval(()=>{const t=$('#tm');if(t)t.textContent=fm(el());const g=$('#gt');if(g&&W)g.textContent=fm(Date.now()-(W.t0||Date.now()));
  if(RT){const r=$('#rt'),rem=RT.end-Date.now();if(rem>0){if(r)r.textContent=fm(rem+999)}else if(!RT.b){RT.b=1;RT.hide=Date.now()+4000;beep();if(r)r.textContent='00:00'}else if(Date.now()>RT.hide){RT=null;R()}}},300);
 onAuthStateChanged(auth,async u=>{S.u=u;if(u){try{await load()}catch(e){alert('Could not load data: '+e.message)}
-  if(!W&&!S.draft)try{const d=JSON.parse(localStorage.getItem(DK)||'null');if(d&&d.uid==u.uid&&Date.now()-d.t<432e5&&S.pr.some(p=>p.id==d.W.pid)&&(!d.v.ex||d.v.ex.every(id=>exOf(id))))S.draft=d;else delDraft()}catch(e){delDraft()}}R();if(u)genTips()});
+  if(!W&&!S.draft)try{const d=JSON.parse(localStorage.getItem(DK)||'null');if(d&&d.uid==u.uid&&Date.now()-d.t<432e5&&S.pr.some(p=>p.id==d.W.pid)&&(!d.v.ex||d.v.ex.every(id=>exOf(id))))S.draft=d;else delDraft()}catch(e){delDraft()}}R();if(u){genTips();void syncTodo();}});
 </script></body></html>
