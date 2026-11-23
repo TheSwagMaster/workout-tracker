@@ -492,18 +492,23 @@ async function checkTodoWorkout(root,mapped,workout){
   return runTransaction(todoDb,async tx=>{
     const snapshot=await tx.get(state);
     const seen=snapshot.data()?.workouts||[];
-    if(seen.includes(workout.id)||seen.length>=2)return;
+    if(seen.includes(workout.id))return 'Cette séance a déjà été traitée.';
+    if(seen.length>=2)return 'Les deux séances de ce type ont déjà été traitées cette semaine.';
     const prefix=workout.category==='upper'?'Upper':'Lower';
     const task=doc(root,'tasks',mapped[`${prefix} ${seen.length?'B':'A'}`]);
     const target=(await tx.get(task)).data();
     if(!target||(target.repeat!=='weekly'&&(target.repeat||!(target.perWeek>0))))throw new Error('task');
     // Une séance en attente de la semaine passée ne doit pas modifier une case actuelle.
-    if(week===todoWeek(Date.now())&&!(target.done&&target.doneAt>=week)){
+    const sameWeek=week===todoWeek(Date.now()),already=target.done&&target.doneAt>=week;
+    if(sameWeek&&!already){
       const log=doc(collection(root,'logs'));
       tx.set(log,{domainId:target.domainId,note:target.text,taskId:task.id,ts:workout.at});
       tx.update(task,{done:true,doneAt:workout.at,logId:log.id});
     }
     tx.set(state,{workouts:[...seen,workout.id]});
+    const name=`${prefix} ${seen.length?'B':'A'}`;
+    return !sameWeek?'La séance appartient à une semaine passée.'
+      :already?`${name} était déjà cochée.`:`${name} a été cochée dans la to-do list.`;
   });
 }
 async function syncTodo(){
@@ -517,18 +522,28 @@ async function syncTodo(){
       const current=todoState();
       if(current?.uid!==link.uid||!current.pending.length)break;
       const workout=current.pending[0];
-      await checkTodoWorkout(root,current.mapped,workout);
+      todoMessage=await checkTodoWorkout(root,current.mapped,workout);
       if(S.u?.uid!==trackerUid)break;
       const latest=todoState();
       if(latest?.uid===link.uid)saveTodoState(trackerUid,{...latest,pending:latest.pending.filter(w=>w.id!==workout.id)});
     }
-    todoMessage='Synchronisation terminée.';
-  }catch{todoMessage='Synchronisation en attente. Vérifie la connexion et les tâches liées.';}
+  }catch(e){
+    todoMessage=e.code==='permission-denied'?'Synchronisation refusée par Firestore. Vérifie le compte Google utilisé.'
+      :e.message==='task'?'Une tâche liée a été supprimée ou n’est plus hebdomadaire. Relie les tâches puis réessaie.'
+      :'Synchronisation en attente. Vérifie ta connexion Internet puis réessaie.';
+  }
   finally{todoBusy=false;if(S.cfg)R();}
 }
 function queueTodoWorkout(workout){
   const link=todoState();
-  if(!link||!workout?.made||!Object.keys(workout.done||{}).length)return;
+  if(!workout?.made||!Object.keys(workout.done||{}).length){
+    todoMessage='Aucun exercice enregistré dans cette séance.';
+    return;
+  }
+  if(!link){
+    todoMessage='La to-do list n’est pas liée sur cet appareil. Connecte-la pour reprendre la dernière séance.';
+    return;
+  }
   const id=workout.ref?.id||workout.workoutId;
   if(!id||!['upper','lower'].includes(workout.cat)||link.pending.some(w=>w.id===id))return;
   try{
@@ -536,12 +551,40 @@ function queueTodoWorkout(workout){
     void syncTodo();
   }catch{todoMessage='Impossible de conserver la séance à synchroniser sur cet appareil.';alert(todoMessage);}
 }
+async function recoverTodoWorkout(){
+  const link=todoState();
+  if(todoBusy||!S.u||!link||todoAuth.currentUser?.uid!==link.uid)return;
+  const uid=S.u.uid;
+  todoBusy=true;
+  try{
+    const week=todoWeek(Date.now());
+    const snapshots=await getDocs(query(col('workouts'),where('date','>=',new Date(week).toISOString())));
+    if(S.u?.uid!==uid||todoAuth.currentUser?.uid!==link.uid)return;
+    const latest=snapshots.docs.filter(d=>{
+      const row=d.data();
+      return !row.imported&&['upper','lower'].includes(row.category);
+    }).sort((a,b)=>b.data().date.localeCompare(a.data().date))[0];
+    if(!latest){todoMessage='Aucune séance enregistrée cette semaine.';return;}
+    const row=latest.data();
+    const label=row.category==='upper'?'Upper':'Lower';
+    const date=new Date(row.date).toLocaleString(LOC());
+    if(!confirm(`Synchroniser la séance ${label} du ${date} ? Confirme seulement si tu as terminé cette séance.`))return;
+    const current=todoState();
+    if(current?.uid!==link.uid)return;
+    if(!current.pending.some(w=>w.id===latest.id)){
+      saveTodoState(uid,{...current,pending:[...current.pending,{id:latest.id,category:row.category,at:Date.parse(row.date)}]});
+    }
+    todoMessage='Séance mise en attente.';
+  }catch{todoMessage='Impossible de récupérer la dernière séance.';}
+  finally{todoBusy=false;if(S.cfg)R();void syncTodo();}
+}
 function todoSettings(){
   const link=todoState(),connected=link&&todoAuth.currentUser?.uid===link.uid;
   return `<div class="grp" style="margin-top:14px"><h2>Synchronisation To-do list</h2>
     <p class="s">${connected?'Connectée sur cet appareil.':'Connecte le compte Google de ta to-do list.'}
     ${link?.pending.length?`Séances en attente : ${link.pending.length}.`:''}</p>
-    <div class="row"><button data-a="todo-connect" ${todoBusy?'disabled':''}>${connected?'Relier les tâches':'Connecter ma to-do list'}</button>
+    <div class="row filters"><button data-a="todo-connect" ${todoBusy?'disabled':''}>${connected?'Relier les tâches':'Connecter ma to-do list'}</button>
+    ${connected?`<button data-a="todo-recover" ${todoBusy?'disabled':''}>Reprendre la dernière séance</button>`:''}
     ${connected&&link.pending.length?`<button data-a="todo-sync" ${todoBusy?'disabled':''}>Réessayer</button>`:''}</div>
     ${todoMessage?`<p class="s" role="status">${esc(todoMessage)}</p>`:''}</div>`;
 }
@@ -559,6 +602,7 @@ const A={
  out:()=>{S.cfg=0;todoMessage='';void signOut(todoAuth).catch(()=>{});signOut(auth)},
  'todo-connect':connectTodo,
  'todo-sync':syncTodo,
+ 'todo-recover':recoverTodoWorkout,
  cog:()=>{S.cfg=!S.cfg;R()},
  lang:d=>{S.lang=d.l;LS('wt_lang',d.l);document.documentElement.lang=d.l;R()},
  th:d=>{S.th=d.k;LS('wt_th',d.k);applyTh();R()},
