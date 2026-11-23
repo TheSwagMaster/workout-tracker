@@ -26,7 +26,6 @@ h1{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}h2{font-size:18px;margin:0
 .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.12);color:var(--m)}
 .set{display:grid;grid-template-columns:24px 1fr 1fr 92px;gap:8px;margin:6px 0;align-items:center}
 .tm{font:600 44px ui-monospace,Menlo,monospace;text-align:center;margin:6px 0}
-.aligned{text-align:right;align-items:flex-end;display:flex;flex-direction:column}
 .item{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 [data-a]{cursor:pointer;touch-action:manipulation}
 :root{--sh:#26211e}
@@ -171,7 +170,7 @@ const opts=()=>S.ex.map(e=>`<option value="${e.id}">${esc(e.nameEn)}</option>`).
 const gz=(P,c)=>{const n=P[c].length;return P[c+'G']||(c=='lower'&&n==7?[2,2,1,2]:Array.from({length:Math.ceil(n/2)},(_,i)=>i<Math.floor(n/2)?2:1))};
 const groups=(P,c)=>{let i=0;return gz(P,c).map(k=>{const g=P[c].slice(i,i+k);i+=k;return g})};
 function catCard(P,c){const G=groups(P,c),n=P[c].length,ed=S.edit==c,op=ed||S.op[c];let b=0;
- const hd=`<div class="row aligned"><div data-a="tgo" data-c="${c}" style="flex:1;padding:4px 0"><h2>${c=='upper'?'Upper':'Lower'} body</h2><div class="s">${n} exercises · ${G.length} blocks ${op?'▴':'▾'}</div></div><button class="p" data-a="start" data-c="${c}">Start</button></div>`;
+ const hd=`<div class="row"><div data-a="tgo" data-c="${c}" style="flex:1;padding:4px 0"><h2>${c=='upper'?'Upper':'Lower'} body</h2><div class="s">${n} exercises · ${G.length} blocks ${op?'▴':'▾'}</div></div><button class="p" data-a="start" data-c="${c}">Start</button></div>`;
  if(!op)return `<div class="glass card" data-card="${c}">${hd}</div>`;
  const body=G.map((g,gi)=>{const o=b;b+=g.length;return `<div class="grp2" data-g="${gi}">${ed?`<span class="hdl" data-drag="${gi}" data-c="${c}">⠿</span>`:''}<div class="gx ${g.length>1?'ss':''}">${g.map((id,j)=>{const e=exOf(id);return `<div class="nm"><span>${e?esc(e.nameEn):'?'}</span>${ed?`<button class="ic" data-a="rm" data-c="${c}" data-i="${o+j}">✕</button>`:''}</div>`}).join('')}`+
   (ed?(g.length>1?`<button class="ghost" data-a="unl" data-c="${c}" data-g="${gi}">Unlink superset</button>`:G[gi+1]&&G[gi+1].length==1?`<button class="ghost" data-a="lnk" data-c="${c}" data-g="${gi}">Link with next ⛓</button>`:''):'')+`</div></div>`}).join('');
