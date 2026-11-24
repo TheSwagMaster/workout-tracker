@@ -399,7 +399,7 @@ const moveTo=(block,rest=false)=>{
     }catch{}
   });
 };
-const startRest=()=>{RT={end:Date.now()+90000};};
+const startRest=()=>{RT={end:Date.now()+S.rest*1000};};
 function previousSeries(g,id){
   const sets=g.last[id];
   return sets?.[g.round]??sets?.at(-1);
@@ -522,7 +522,11 @@ const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorag
 const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#edf4f2':'#101619'};
 S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
 const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
-const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button><div class="grp" style="margin-top:14px"><h2>Mode test</h2>
+const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button><div class="grp" style="margin-top:14px"><h2>Temps de repos</h2>
+    <label for="rest-duration" class="s">Durée en secondes</label>
+    <input id="rest-duration" type="number" inputmode="numeric" min="15" max="600" step="1" value="${S.rest}" aria-describedby="rest-help">
+    <p id="rest-help" class="s">Utilisée pour les pauses manuelles et automatiques. 90 secondes = 1 min 30.</p>
+    </div><div class="grp" style="margin-top:14px"><h2>Mode test</h2>
     <p class="s">Essaie le parcours sans enregistrer de séance.</p>
     ${prog()?`<div class="row filters"><button data-a="start" data-c="upper" data-test="1">Tester Upper</button><button data-a="start" data-c="lower" data-test="1">Tester Lower</button></div>`:''}
     </div>${todoSettings()}</div>`;
@@ -703,7 +707,10 @@ onAuthStateChanged(todoAuth,()=>{if(S.cfg)R();void syncTodo();});
 addEventListener('online',()=>void syncTodo());
 addEventListener('pageshow',()=>void syncTodo());
 /* ---------- Repos et chrono global ---------- */
-let RT=null,AC=null;const _r=LS('wt_rest');S.rest=_r===null?90:+_r;
+let RT=null,AC=null;
+const validRest=seconds=>Number.isInteger(seconds)&&seconds>=15&&seconds<=600;
+const savedRest=Number(LS('wt_rest'));
+S.rest=validRest(savedRest)?savedRest:90;
 const unlock=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}};
 const beep=()=>{try{unlock();const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.frequency.value=880;g.gain.value=.15;o.start();o.stop(AC.currentTime+.4);navigator.vibrate&&navigator.vibrate(200)}catch(e){}};
 const topBar=()=>`<div class="session-clock"><span>${W.test?'Mode test · ':''}Temps de séance</span><strong id="gt">${fm(Date.now()-(W.t0||Date.now()))}</strong></div>`+(RT?`<div class="glass card"><div class="row"><div style="flex:1"><div class="s">Rest</div><div class="tm" id="rt">${fm(Math.max(0,RT.end-Date.now())+999)}</div></div><button data-a="rt15">+15 s</button><button data-a="rtx">Skip</button></div></div>`:'');
@@ -722,7 +729,6 @@ const A={
  ok:d=>{unlock();const i=+d.i,a=S.sets[d.x][i];a.ok=!a.ok;S.dirty=1;
   if(a.ok&&S.rest&&S.view.ex.every(id=>S.sets[id][i]?S.sets[id][i].ok:true))RT={end:Date.now()+S.rest*1000};R()},
  rt15:()=>{if(RT){RT.end+=15000;RT.b=0;R()}},rtx:()=>{RT=null;R()},
- rest:d=>{S.rest=+d.k;LS('wt_rest',String(S.rest));R()},
  resume:()=>{const d=S.draft;S.draft=null;W=d.W;S.sets=d.sets||{};T=d.T||{acc:0,st:null};S.dirty=d.dirty||0;S.last={};S.tab='train';const v=S.view=d.v;RT=d.rt||null;if(W.guided)W.guided.saving=false;R();
   if(v.ex)v.ex.forEach(async id=>{const L=(await logs(id))[0];if(S.view!==v)return;S.last[id]=L||null;R()})},
  disc:()=>{if(!confirm('Discard this workout in progress?'))return;S.draft=null;delDraft();R()},
@@ -805,7 +811,19 @@ const A={
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
 document.addEventListener('input',e=>{const d=e.target.dataset;if(d.guided&&W?.guided){W.guided.values[d.guided]=e.target.value;}if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList();tr()}});
-document.addEventListener('change',e=>{if(e.target.id==='guided-rounds'&&W?.guided){const g=W.guided;g.rounds=Math.max(g.round+1,Math.min(30,Math.floor(+e.target.value)||g.rounds));e.target.value=g.rounds;saveDraft();}if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
+document.addEventListener('change',e=>{
+ if(e.target.id==='rest-duration'){
+  const seconds=e.target.valueAsNumber;
+  if(!validRest(seconds)){
+   e.target.value=S.rest;
+   alert('Choisis une durée entière entre 15 et 600 secondes.');
+   return;
+  }
+  S.rest=seconds;
+  LS('wt_rest',String(seconds));
+  return;
+ }
+if(e.target.id==='guided-rounds'&&W?.guided){const g=W.guided;g.rounds=Math.max(g.round+1,Math.min(30,Math.floor(+e.target.value)||g.rounds));e.target.value=g.rounds;saveDraft();}if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='ai-in')A.send()});
 /* ---------- Balayage entre onglets ---------- */
 let SW=null;const TABS=['train','ex','st','ai'];
