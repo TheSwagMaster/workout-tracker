@@ -329,7 +329,7 @@ function sessionSummary(){
 function train(){
  const P=prog();
  if(!P)return head('My Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
- return head('Training')+(S.summary?sessionSummary():'')+(S.draft?draftCard():'')+`<div class="row program-picker"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary aria-label="${S.lang=='fr'?'Options du programme':'Program options'}">${icon('more')}</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower')+`<div class="row filters"><button data-a="start" data-c="upper" data-test="1">Tester Upper</button><button data-a="start" data-c="lower" data-test="1">Tester Lower</button></div>`;
+ return head('Training')+(S.summary?sessionSummary():'')+(S.draft?draftCard():'')+`<div class="row program-picker"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary aria-label="${S.lang=='fr'?'Options du programme':'Program options'}">${icon('more')}</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
 }
 const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),dn=e=>S.lang=='fr'&&e.nameFr?e.nameFr:e.nameEn;
 const exCard=e=>`<div class="glass card exercise-card" data-a="hist" data-id="${e.id}"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s"><span>${esc(e.muscles||'')}</span>${e.type=='time'?'<span> · Timed</span>':''}</div></div>`;
@@ -381,25 +381,39 @@ const moveTo=(block,rest=false)=>{
   S.view={guided:1};T={acc:0,st:null};
   if(rest)startRest();
   R();scrollTo(0,0);
-  if(!W.test)ids.forEach(async id=>{
+  ids.forEach(async id=>{
     try{
       const last=(await logs(id))[0];if(W?.guided!==g)return;
       g.last[id]=last?.sets||[];
-      if(S.view?.guided&&!document.activeElement?.matches('input'))R();
+      if(!S.view?.guided||ids[g.step]!==id)return;
+      const previous=previousSeries(g,id);
+      document.querySelectorAll('[data-guided]').forEach(input=>{
+        const key=input.dataset.guided;
+        if(!Object.hasOwn(g.values,key))input.value=previous?.[key]??'';
+      });
+      const history=$('#guided-previous');
+      if(history){
+        history.hidden=!previous;
+        history.textContent=previous?'Dernière séance · '+fs(previous):'';
+      }
     }catch{}
   });
 };
 const startRest=()=>{RT={end:Date.now()+90000};};
+function previousSeries(g,id){
+  const sets=g.last[id];
+  return sets?.[g.round]??sets?.at(-1);
+}
 function guidedView(){
   const g=W.guided,blocks=sessionBlocks(),ids=blocks[g.block],id=ids[g.step],e=exOf(id);
-  const timed=e.type==='time',previous=g.last[id]?.[g.round],value=g.values;
+  const timed=e.type==='time',previous=previousSeries(g,id),value=g.values;
   const fields=timed?[['s','Secondes']]:[['r','Répétitions'],['kg','Charge (kg)']];
   const next=ids[g.step+1]|| (g.round+1<g.rounds?ids[0]:blocks[g.block+1]?.[0]);
   return head(esc(dn(e)),1)+topBar()+`<div class="glass card guided-card">
     <div class="s">Bloc ${g.block+1}/${blocks.length} · ${ids.length>1?'Tour':'Série'} ${g.round+1}/${g.rounds}${ids.length>1?` · Exercice ${g.step+1}/${ids.length}`:''}</div>
     <h2>${esc(dn(e))}</h2>
-    ${previous?`<p class="s">Dernière séance · ${esc(fs(previous))}</p>`:''}
-    <div class="row guided-inputs">${fields.map(([key,label])=>`<label><span class="s">${label}</span><input data-guided="${key}" type="number" min="0" step="${key==='kg'?'any':'1'}" inputmode="${key==='kg'?'decimal':'numeric'}" value="${esc(value[key]??'')}" placeholder="${esc(previous?.[key]??'')}"></label>`).join('')}</div>
+    <p class="s" id="guided-previous" ${previous?'':'hidden'}>${previous?'Dernière séance · '+esc(fs(previous)):''}</p>
+    <div class="row guided-inputs">${fields.map(([key,label])=>`<label><span class="s">${label}</span><input data-guided="${key}" type="number" min="0" step="${key==='kg'?'any':'1'}" inputmode="${key==='kg'?'decimal':'numeric'}" value="${esc(value[key]??previous?.[key]??'')}"></label>`).join('')}</div>
     ${timed?`<p class="tm" id="tm">${fm(el())}</p><button data-a="tgl">${T.st?'Arrêter le chrono':T.acc?'Reprendre le chrono':'Démarrer le chrono'}</button>`:''}
     ${tipsHtml(e)}
     <p class="s">${next?'Ensuite · '+esc(dn(exOf(next))):'Dernière étape de la séance'}</p>
@@ -412,7 +426,7 @@ function guidedView(){
 async function nextSeries(){
   const workout=W,g=W.guided,id=sessionBlocks()[g.block][g.step],e=exOf(id);
   if(g.saving)return;
-  const v=g.values,seconds=Number(v.s||Math.floor(el()/1000));
+  const v={...previousSeries(g,id),...g.values},seconds=Number(v.s||Math.floor(el()/1000));
   if(e.type==='time'?!Number.isInteger(seconds)||seconds<=0:!Number.isInteger(+v.r)||+v.r<=0||!Number.isFinite(+(v.kg||0))||+(v.kg||0)<0){
     alert('Saisis une durée ou un nombre de répétitions valide.');return;
   }
@@ -508,7 +522,10 @@ const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorag
 const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#edf4f2':'#101619'};
 S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
 const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
-const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button>${todoSettings()}</div>`;
+const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button><div class="grp" style="margin-top:14px"><h2>Mode test</h2>
+    <p class="s">Essaie le parcours sans enregistrer de séance.</p>
+    ${prog()?`<div class="row filters"><button data-a="start" data-c="upper" data-test="1">Tester Upper</button><button data-a="start" data-c="lower" data-test="1">Tester Lower</button></div>`:''}
+    </div>${todoSettings()}</div>`;
 const FR={'My Training':'Mon entraînement','Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Search by name or muscle':'Rechercher par nom ou muscle','Workout':'Séance','Rest':'Repos','Skip':'Passer','Rest timer':'Chrono de repos','Off':'Désactivé','Workout in progress':'Séance en cours','Resume workout':'Reprendre la séance','Discard':'Abandonner','Discard this workout in progress?':'Abandonner la séance en cours ?','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
 'Add at least one set.':'Ajoute au moins une série.','Enter an English name.':'Saisis un nom en anglais.','Enter the full https:// address.':'Saisis l’adresse complète en https://.','Exercise not found in your library.':'Exercice introuvable dans ta bibliothèque.','That exercise is not in the active program.':'Cet exercice n’est pas dans le programme actif.','This exercise already exists.':'Cet exercice existe déjà.','This name already exists.':'Ce nom existe déjà.','You need at least one program.':'Il faut au moins un programme.','Leave this workout? Saved exercises are kept.':'Quitter cette séance ? Les exercices enregistrés sont conservés.','Remove this exercise from the program? Your history is kept.':'Retirer cet exercice du programme ? Ton historique est conservé.','Name of the new program':'Nom du nouveau programme','New name':'Nouveau nom','Your tips, separated by |':'Tes conseils, séparés par |'};
 const RX=[[/^AI requests today: (\d+) \/ (\d+)$/,'Requêtes IA aujourd’hui : $1 / $2'],[/^⚠ Daily AI limit reached \((\d+)\/(\d+)\)\. It resets tomorrow\.$/,'⚠ Limite quotidienne de l’IA atteinte ($1/$2). Elle repart demain.'],
@@ -727,7 +744,7 @@ const A={
  start:d=>{
   if(S.draft){alert('Reprends ou abandonne d’abord la séance en cours.');return;}
   W={cat:d.c,pid:prog().id,done:{},ref:null,made:false,t0:Date.now(),test:d.test==='1'};
-  S.summary='';RT=null;moveTo(0);
+  S.cfg=false;S.summary='';RT=null;moveTo(0);
  },
  'guided-open':d=>{const block=+d.block;if(W.guided?.block===block){S.view={guided:1};R();}else if(!W.guided||confirm('Changer de bloc et abandonner la saisie en cours ?'))moveTo(block);},
  'guided-rest':()=>{pause();startRest();R();},
