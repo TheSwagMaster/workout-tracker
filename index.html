@@ -165,6 +165,14 @@ nav button.on { background:var(--field); color:var(--accent); border-color:var(-
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after { transition:none !important; animation:none !important; }
 }
+.session-clock { display:flex;justify-content:space-between;align-items:center;padding:8px 4px;margin-bottom:12px; }
+.session-clock strong { font-size:1.45rem;font-variant-numeric:tabular-nums; }
+.session-actions { position:sticky;bottom:0;z-index:4;padding:10px;margin-top:12px; }
+.session-actions button { flex:1; }
+.session-view { padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+.guided-inputs label { flex:1; }
+.guided-inputs input { margin-top:4px; }
+.guided-card h2 { font-size:1.5rem;margin:4px 0 12px; }
 </style></head><body><div class="bg"></div><div id="app"></div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -312,10 +320,16 @@ document.addEventListener('pointerdown',e=>{const h=e.target.closest('[data-drag
 document.addEventListener('pointermove',e=>{if(!DR)return;const t=document.elementsFromPoint(e.clientX,e.clientY).find(x=>x.classList&&x.classList.contains('grp2')&&x.closest('[data-card]')&&x.closest('[data-card]').dataset.card==DR.c);if(!t)return;document.querySelectorAll('.tgt').forEach(x=>x.classList.remove('tgt'));DR.to=+t.dataset.g;t.classList.add('tgt')});
 const drEnd=()=>{if(!DR)return;const{c,a,to}=DR;drClean();if(a==to)return;const P=prog(),gs=groups(P,c),[m]=gs.splice(a,1);gs.splice(to,0,m);P[c]=gs.flat();P[c+'G']=gs.map(g=>g.length);saveP(P,c);R()};
 document.addEventListener('pointerup',drEnd);document.addEventListener('pointercancel',drClean);
+function sessionSummary(){
+ const {count,duration,test}=S.summary;
+ const info=test?'Mode test · aucune donnée enregistrée.':todoState()?.pending.length
+   ?'Synchronisation To-do list en attente.':todoMessage;
+ return `<div class="glass card"><h2>Séance terminée</h2><p>${count} exercice(s) · ${fm(duration)}</p>${info?`<p class="s" role="status">${esc(info)}</p>`:''}</div>`;
+}
 function train(){
  const P=prog();
  if(!P)return head('My Training')+`<div class="glass card"><p>Your library is empty. Load your September–November programs and history to get started.</p><button class="p" data-a="seed">Load my data</button></div>`;
- return head('Training')+(S.draft?draftCard():'')+`<div class="row program-picker"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary aria-label="${S.lang=='fr'?'Options du programme':'Program options'}">${icon('more')}</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower');
+ return head('Training')+(S.summary?sessionSummary():'')+(S.draft?draftCard():'')+`<div class="row program-picker"><select id="ps">${S.pr.map(p=>`<option value="${p.id}" ${p.id===P.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select><details class="mn"><summary aria-label="${S.lang=='fr'?'Options du programme':'Program options'}">${icon('more')}</summary><div class="glass menu"><button data-a="newp">New program</button><button data-a="renp">Rename</button><button data-a="delp">Delete</button></div></details></div>`+catCard(P,'upper')+catCard(P,'lower')+`<div class="row filters"><button data-a="start" data-c="upper" data-test="1">Tester Upper</button><button data-a="start" data-c="lower" data-test="1">Tester Lower</button></div>`;
 }
 const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(),dn=e=>S.lang=='fr'&&e.nameFr?e.nameFr:e.nameEn;
 const exCard=e=>`<div class="glass card exercise-card" data-a="hist" data-id="${e.id}"><div class="row"><b style="flex:1">${esc(e.nameEn)}</b><span class="tag">${e.equipment?'With equipment':'No equipment'}</span></div><div class="s"><span>${esc(e.muscles||'')}</span>${e.type=='time'?'<span> · Timed</span>':''}</div></div>`;
@@ -324,7 +338,7 @@ const exList=()=>{const q=nz(S.q.trim()),fr=S.lang=='fr',L=S.ex.filter(e=>(S.f==
 const exTab=()=>head('Exercises')+`<input id="q" placeholder="Search by name or muscle" value="${esc(S.q)}" style="margin-bottom:10px"><div class="row filters">${[['all','All'],['eq','With equipment'],['no','No equipment']].map(([k,l])=>`<button data-a="flt" data-k="${k}" class="${S.f==k?'p':''}">${l}</button>`).join('')}</div>
 <details class="glass card reveal"><summary><span>New exercise</span>${icon('down')}</summary><div style="height:8px"></div><input id="n-en" placeholder="English name"><div style="height:8px"></div><select id="n-t"><option value="reps">Reps (weight optional)</option><option value="time">Time (seconds)</option></select><div style="height:8px"></div><select id="n-e"><option value="1">With equipment</option><option value="0">No equipment</option></select><div style="height:8px"></div><button class="p" data-a="newex">Add exercise</button></details><div id="list">${exList()}</div>`;
 const soon=(t,p)=>head(t)+`<div class="glass card"><p>Coming in ${p}.</p></div>`;
-async function loadSt(){try{const[a,b]=await Promise.all([getDocs(col('workouts')),getDocs(col('exercise_logs'))]);S.ws=a.docs.map(d=>d.data());S.lg=b.docs.map(d=>d.data());if(S.tab=='st'&&!S.view)R()}catch(e){alert('Could not load statistics: '+e.message)}}
+async function loadSt(quiet=false){try{const[a,b]=await Promise.all([getDocs(col('workouts')),getDocs(col('exercise_logs'))]);S.ws=a.docs.map(d=>d.data());S.lg=b.docs.map(d=>d.data());if(S.tab=='st'&&!S.view)R()}catch(e){if(quiet)throw new Error(S.lang==='fr'?'Impossible de charger les performances. Réessaie.':'Could not load workout history. Try again.');alert('Could not load statistics: '+e.message)}}
 const wk=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime()};
 const chart=pts=>{if(pts.length<2)return '<div class="s">Log at least 2 sessions in this period to see a chart.</div>';const mx=Math.max(...pts),mn=Math.min(...pts),xy=pts.map((v,i)=>[12+i*276/(pts.length-1),60-(mx==mn?25:(v-mn)/(mx-mn)*45)]);return `<svg viewBox="0 0 300 70" class="chart"><polyline fill="none" stroke="var(--chart)" stroke-width="2" points="${xy.map(q=>q.join(',')).join(' ')}"/>${xy.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="var(--chart)"/>`).join('')}</svg>`};
 function stats(){
@@ -348,7 +362,7 @@ function stats(){
  `<div class="glass card"><div class="row" style="text-align:center">${cell(nW,'This week')}${cell(nM,'This month')}${cell(avg,'Per week')}</div><div class="s" style="margin-top:10px">${ws.length} sessions in this period · ${vol} kg lifted (weighted sets only, bodyweight sets not counted)</div></div>`+
  `<div class="glass card"><h2>Regularity</h2><div class="s">Sessions per week, last 8 weeks · ${tr} vs the previous 4 weeks</div><svg viewBox="0 0 300 78" class="chart">${bars}</svg></div>`+
  `<div class="glass card"><h2>Progress by exercise</h2><div style="height:10px"></div>${prog}</div>`+
- `<div class="glass card"><h2>Export your data</h2><div class="s" style="margin:4px 0 10px">JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.</div><div class="row"><button class="p" data-a="expj" style="flex:1">Export JSON</button><button data-a="expc" style="flex:1">Export CSV</button></div></div>`}
+ `<details class="glass card reveal"><summary><span>Export your data</span>${icon('down')}</summary><div class="s" style="margin:4px 0 10px">JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.</div><div class="row"><button class="p" data-a="expj" style="flex:1">Export JSON</button><button data-a="expc" style="flex:1">Export CSV</button></div></details>`}
 const exByName=n=>S.ex.find(e=>e.nameEn.toLowerCase()==String(n).toLowerCase());
 async function ensure(n,nw){const f=exByName(n);if(f)return f.id;const x=(nw||[]).find(y=>String(y.en).toLowerCase()==String(n).toLowerCase())||{en:n},r=doc(col('exercises')),o={nameEn:x.en,nameFr:x.fr||x.en,type:x.type=='time'?'time':'reps',equipment:x.equipment!==false};await setDoc(r,o);S.ex.push({id:r.id,...o});genTips();return r.id}
 const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.lower]:[];
@@ -357,9 +371,89 @@ const aiCtx=()=>{const P=prog(),nm=id=>exOf(id)?.nameEn,ids=P?[...P.upper,...P.l
 const prop=(m,i)=>`<div class="grp"><div class="big">${esc(m.p.name||'Program')}</div>`+['upper','lower'].map(c=>`<div class="s" style="margin-top:6px">${c.toUpperCase()}</div>`+(m.p[c]||[]).map(g=>`<div>${[].concat(g).map(esc).join(' + ')}</div>`).join('')).join('')+`<div class="row" style="margin-top:10px"><button class="p" data-a="okp" data-i="${i}" style="flex:1">Add as new program</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`;
 const msg=(m,i)=>`<div class="glass card ${m.r=='user'?'chat-user':'chat-coach'}"><div style="white-space:pre-wrap">${esc(m.t)}</div>${m.p?prop(m,i):''}${m.sw?`<div class="grp"><div class="s">Replace in your active program</div><div class="big">${esc(m.sw.from)} → ${esc(m.sw.to)}</div><div class="row"><button class="p" data-a="oks" data-i="${i}" style="flex:1">Confirm</button><button data-a="no" data-i="${i}" style="flex:1">Dismiss</button></div></div>`:''}</div>`;
 const ai=()=>!S.aiUrl?head('AI Coach')+`<div class="glass card"><p>Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.</p><input id="aiu" placeholder="https://workout-coach.xxx.workers.dev"><div style="height:8px"></div><button class="p" data-a="aiurl">Save</button></div>`:
- head('AI Coach')+`${S.usage?'<div class="s" style="margin-bottom:6px">AI requests today: '+S.usage.used+' / '+S.usage.limit+'</div>':''}<div class="s" style="margin-bottom:10px">Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.</div>`+(S.chat.length?'':'<div class="glass card"><div class="s">Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.</div></div>')+S.chat.map(msg).join('')+(S.busy?'<div class="s">Thinking…</div>':'')+`<div class="glass card"><input id="ai-in" placeholder="Ask your coach…"><div style="height:8px"></div><button class="p" data-a="send" style="width:100%">Send</button></div>`;
+ head('AI Coach')+`${S.usage?'<div class="s" style="margin-bottom:6px">AI requests today: '+S.usage.used+' / '+S.usage.limit+'</div>':''}<div class="s" style="margin-bottom:10px">Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.</div>`+(S.chat.length?'':'<div class="glass card"><div class="s">Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.</div></div>')+S.chat.map(msg).join('')+(S.busy?'<div class="s">Thinking…</div>':'')+`<div class="glass card">${S.aiError?`<p class="s" role="status">${esc(S.aiError)}</p>`:''}<input id="ai-in" placeholder="Ask your coach…" value="${esc(S.aiRetry||'')}"><div style="height:8px"></div><button class="p" data-a="send" style="width:100%">${S.aiError?'Réessayer':'Send'}</button></div>`;
 const tabs=()=>S.tab=='train'?train():S.tab=='ex'?exTab():S.tab=='st'?stats():ai();
-const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+topBar()+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="open" data-ids="${g.join(',')}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
+const sessionBlocks=()=>groups(S.pr.find(p=>p.id===W.pid),W.cat);
+const moveTo=(block,rest=false)=>{
+  const ids=sessionBlocks()[block];
+  if(!ids?.length){S.view={ses:1};RT=null;R();scrollTo(0,0);return;}
+  const g=W.guided={block,round:0,step:0,rounds:3,entries:{},values:{},last:{}};
+  S.view={guided:1};T={acc:0,st:null};
+  if(rest)startRest();
+  R();scrollTo(0,0);
+  if(!W.test)ids.forEach(async id=>{
+    try{
+      const last=(await logs(id))[0];if(W?.guided!==g)return;
+      g.last[id]=last?.sets||[];
+      if(S.view?.guided&&!document.activeElement?.matches('input'))R();
+    }catch{}
+  });
+};
+const startRest=()=>{RT={end:Date.now()+90000};};
+function guidedView(){
+  const g=W.guided,blocks=sessionBlocks(),ids=blocks[g.block],id=ids[g.step],e=exOf(id);
+  const timed=e.type==='time',previous=g.last[id]?.[g.round],value=g.values;
+  const fields=timed?[['s','Secondes']]:[['r','Répétitions'],['kg','Charge (kg)']];
+  const next=ids[g.step+1]|| (g.round+1<g.rounds?ids[0]:blocks[g.block+1]?.[0]);
+  return head(esc(dn(e)),1)+topBar()+`<div class="glass card guided-card">
+    <div class="s">Bloc ${g.block+1}/${blocks.length} · ${ids.length>1?'Tour':'Série'} ${g.round+1}/${g.rounds}${ids.length>1?` · Exercice ${g.step+1}/${ids.length}`:''}</div>
+    <h2>${esc(dn(e))}</h2>
+    ${previous?`<p class="s">Dernière séance · ${esc(fs(previous))}</p>`:''}
+    <div class="row guided-inputs">${fields.map(([key,label])=>`<label><span class="s">${label}</span><input data-guided="${key}" type="number" min="0" step="${key==='kg'?'any':'1'}" inputmode="${key==='kg'?'decimal':'numeric'}" value="${esc(value[key]??'')}" placeholder="${esc(previous?.[key]??'')}"></label>`).join('')}</div>
+    ${timed?`<p class="tm" id="tm">${fm(el())}</p><button data-a="tgl">${T.st?'Arrêter le chrono':T.acc?'Reprendre le chrono':'Démarrer le chrono'}</button>`:''}
+    ${tipsHtml(e)}
+    <p class="s">${next?'Ensuite · '+esc(dn(exOf(next))):'Dernière étape de la séance'}</p>
+    <details class="reveal"><summary>Options du bloc</summary>
+      <label class="s">Nombre de ${ids.length>1?'tours':'séries'}<input type="number" min="${g.round+1}" max="30" value="${g.rounds}" id="guided-rounds"></label>
+      <button data-a="undo-series">Annuler la dernière série saisie</button>
+    </details></div>
+    <div class="glass row session-actions"><button data-a="guided-rest">Pause</button><button class="p" data-a="next-series">Terminer la série</button></div>`;
+}
+async function nextSeries(){
+  const workout=W,g=W.guided,id=sessionBlocks()[g.block][g.step],e=exOf(id);
+  if(g.saving)return;
+  const v=g.values,seconds=Number(v.s||Math.floor(el()/1000));
+  if(e.type==='time'?!Number.isInteger(seconds)||seconds<=0:!Number.isInteger(+v.r)||+v.r<=0||!Number.isFinite(+(v.kg||0))||+(v.kg||0)<0){
+    alert('Saisis une durée ou un nombre de répétitions valide.');return;
+  }
+  const entry=e.type==='time'?{s:seconds}:{r:+v.r,kg:+v.kg||0};
+  const ids=sessionBlocks()[g.block];
+  (g.entries[id]??=[]).push(entry);
+  if(g.step+1<ids.length){g.step++;g.values={};T={acc:0,st:null};R();return;}
+  if(g.round+1<g.rounds){g.round++;g.step=0;g.values={};T={acc:0,st:null};startRest();R();scrollTo(0,0);return;}
+  if(!workout.test&&!navigator.onLine){alert('Reconnecte-toi pour enregistrer le bloc. Ta saisie est conservée.');g.entries[id].pop();return;}
+  g.saving=true;
+  try{
+    if(!workout.test){
+      const ref=workout.workoutId?doc(col('workouts'),workout.workoutId):doc(col('workouts'));
+      workout.workoutId=ref.id;
+      const date=new Date().toISOString(),batch=writeBatch(db);
+      const duration=Math.round((Date.now()-workout.t0)/1000);
+      const values={programId:workout.pid,category:workout.cat,duration};
+      if(!workout.made)values.date=date;
+      batch.set(ref,values,{merge:true});
+      for(const [exerciseId,sets] of Object.entries(g.entries)){
+        batch.set(doc(db,'exercise_logs',`${ref.id}-${g.block}-${exerciseId}`),
+          {exerciseId,workoutId:ref.id,date,sets,duration:sets.reduce((total,set)=>total+(set.s||0),0),superset:ids.length>1});
+      }
+      await batch.commit();workout.made=true;
+    }
+    if(W!==workout)return;
+    for(const exerciseId of ids)workout.done[exerciseId]=1;
+    workout.guided=null;
+    moveTo(g.block+1,true);
+  }catch{g.entries[id].pop();alert('Impossible d’enregistrer ce bloc. Vérifie ta connexion et réessaie.');}
+  finally{g.saving=false;}
+}
+function undoSeries(){
+  const g=W.guided,ids=sessionBlocks()[g.block];
+  if(g.saving||(!g.step&&!g.round))return;
+  if(!g.step){g.round--;g.step=ids.length;}
+  g.step--;
+  g.values=g.entries[ids[g.step]].pop();
+  RT=null;T={acc:0,st:null};R();
+}
+const ses=()=>{const P=S.pr.find(p=>p.id===W.pid);return head(W.cat=='upper'?'Upper body':'Lower body',1)+topBar()+groups(P,W.cat).map((g,gi)=>{const dn=g.every(id=>W.done[id]);return `<div class="glass card ${dn?'dn':''}" data-a="guided-open" data-block="${gi}">${g.length>1?'<div class="s">Superset '+(gi+1)+'</div>':''}${g.map(id=>`<div class="big">${esc(exOf(id).nameEn)}</div>`).join('')}<div class="s">${dn?'✓ Done':'Tap to log'}</div></div>`}).join('')+`<button class="p" data-a="fin" style="width:100%">Finish workout</button>`};
 function exView(){const ids=S.view.ex;
  return head(ids.length>1?'Superset':esc(exOf(ids[0]).nameEn),1)+topBar()+`<div class="glass card"><div class="tm" id="tm">${fm(el())}</div><div class="row"><button class="p" data-a="tgl" style="flex:1">${T.st?'Pause':T.acc?'Resume':'Start'}</button><button data-a="stp" style="flex:1">Stop</button></div></div>`+ids.map(id=>{const e=exOf(id),t=e.type=='time',L=S.last[id];
  return `<div class="glass card"><div class="big">${esc(e.nameEn)}</div>${tipsHtml(e)}<div class="s">${L===undefined?'Loading…':L?'Last time ('+fd(L.date)+'): '+L.sets.map(fs).join(' · '):'No previous record.'}</div><div class="set hd ${t?'t':''}"><span>Set</span>${t?'<span>Seconds</span>':'<span>Reps</span><span>Kg</span>'}<span></span></div>`+
@@ -379,7 +473,7 @@ const nav=()=>`<nav class="glass">${[['train','My Training'],['ex','Exercises'],
  return `<button data-a="tab" data-t="${k}" ${current?'class="on" aria-current="page"':''}>${icon(k)}<span>${l}</span></button>`
 }).join('')}</nav>`;
 function R(){const a=$('#app');saveDraft();if(!S.u){a.innerHTML=login();tr();return}
- const v=S.view;a.innerHTML=`<main>${!v?tabs():v.ex?exView():v.hist?hist():ses()}</main>`+nav()+(S.cfg?sheet():'');tr()}
+ const v=S.view;const active=v&&(v.guided||v.ex||v.ses);a.innerHTML=`<main${active?' class="session-view"':''}>${!v?tabs():v.guided?guidedView():v.ex?exView():v.hist?hist():ses()}</main>`+(active?'':nav())+(S.cfg?sheet():'');tr()}
 
 /* ---------- Actions ---------- */
 const saveP=(P,c)=>updateDoc(doc(db,'programs',P.id),{[c]:P[c],[c+'G']:gz(P,c)}).catch(e=>alert(e.message));
@@ -414,7 +508,7 @@ const LS=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorag
 const applyTh=()=>{document.documentElement.dataset.th=S.th;const m=document.querySelector('meta[name=theme-color]');if(m)m.content=S.th=='light'?'#edf4f2':'#101619'};
 S.lang=LS('wt_lang')||'en';S.th=LS('wt_th')||'dark';applyTh();document.documentElement.lang=S.lang;
 const LOC=()=>S.lang=='fr'?'fr-FR':'en-GB';
-const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div class="s" style="margin:12px 0 6px">Rest timer</div><div class="row">${[0,60,90,120].map(k=>`<button data-a="rest" data-k="${k}" class="${S.rest==k?'p':''}" style="flex:1;padding:0">${k?k+' s':'Off'}</button>`).join('')}</div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button>${todoSettings()}</div>`;
+const sheet=()=>`<div data-a="cog" class="sheet-backdrop"></div><div class="glass sheet"><h2>Settings</h2><div class="s" style="margin:12px 0 6px">Language</div><div class="row"><button data-a="lang" data-l="en" class="${S.lang=='en'?'p':''}" style="flex:1">English</button><button data-a="lang" data-l="fr" class="${S.lang=='fr'?'p':''}" style="flex:1">Français</button></div><div class="s" style="margin:12px 0 6px">Theme</div><div class="row"><button data-a="th" data-k="dark" class="${S.th=='dark'?'p':''}" style="flex:1">Dark</button><button data-a="th" data-k="light" class="${S.th=='light'?'p':''}" style="flex:1">Light</button></div><div style="height:14px"></div><button data-a="out" style="width:100%">Sign out</button>${todoSettings()}</div>`;
 const FR={'My Training':'Mon entraînement','Training':'Entraînement','Exercises':'Exercices','Statistics':'Statistiques','AI Coach':'Coach IA','Settings':'Réglages','Language':'Langue','Theme':'Thème','Dark':'Sombre','Light':'Clair','Sign in to your account.':'Connecte-toi à ton compte.','Email':'E-mail','Password':'Mot de passe','Sign in':'Se connecter','Sign out':'Se déconnecter','New program':'Nouveau programme','Rename':'Renommer','Delete':'Supprimer','Upper body':'Haut du corps','Lower body':'Bas du corps','UPPER':'HAUT','LOWER':'BAS','Start':'Démarrer','Edit':'Modifier','Done':'Terminé','Add':'Ajouter','Add an exercise…':'Ajouter un exercice…','Unlink superset':'Délier le superset','Link with next ⛓':'Lier avec le suivant ⛓','Pause':'Pause','Resume':'Reprendre','Save superset':'Enregistrer le superset','Save exercise':'Enregistrer l’exercice','Add set':'Ajouter une série','Set':'Série','Seconds':'Secondes','Superset':'Superset','Loading…':'Chargement…','No previous record.':'Aucune performance précédente.','Tap to log':'Touche pour saisir','✓ Done':'✓ Fait','Finish workout':'Terminer la séance','Your library is empty. Load your September–November programs and history to get started.':'Ta bibliothèque est vide. Charge tes programmes et ton historique de septembre à novembre pour commencer.','Load my data':'Charger mes données','30 days':'30 jours','3 months':'3 mois','6 months':'6 mois','1 year':'1 an','All':'Tout','This week':'Cette semaine','This month':'Ce mois-ci','Per week':'Par semaine','Regularity':'Régularité','Progress by exercise':'Progression par exercice','Log a workout to see your progress.':'Enregistre une séance pour voir ta progression.','Best time':'Meilleur temps','Best weight':'Meilleur poids','Best reps':'Meilleures reps','Est. 1RM':'1RM estimé','Log at least 2 sessions in this period to see a chart.':'Enregistre au moins 2 séances sur la période pour voir un graphique.','Log at least 2 sessions to see a chart.':'Enregistre au moins 2 séances pour voir un graphique.','Export your data':'Exporter tes données','JSON is a full backup of everything. CSV has one row per set, to open in Numbers or Excel.':'Le JSON est une sauvegarde complète. Le CSV a une ligne par série, à ouvrir dans Numbers ou Excel.','Export JSON':'Exporter en JSON','Export CSV':'Exporter en CSV','Sessions':'Séances','Best':'Record','Last':'Dernière','No history yet.':'Pas encore d’historique.','imported':'importé','Search exercises':'Rechercher un exercice','With equipment':'Avec matériel','No equipment':'Sans matériel','New exercise':'Nouvel exercice','Reps (weight optional)':'Reps (poids facultatif)','Time (seconds)':'Temps (secondes)','English name':'Nom en anglais','Add exercise':'Ajouter l’exercice','No exercise found.':'Aucun exercice trouvé.','· Timed':'· Chrono','How to':'Comment faire','Tips are being prepared…':'Les conseils sont en préparation…','ⓘ Tips & demo':'ⓘ Conseils et démo','AI-generated: double-check the technique.':'Généré par l’IA : vérifie la technique.','▶ Demo video':'▶ Vidéo de démo','Edit tips':'Modifier les conseils','Paste the address of your Cloudflare Worker to connect the coach. Tracking works without it.':'Colle l’adresse de ton Worker Cloudflare pour connecter le coach. Le suivi marche sans.','Save':'Enregistrer','Suggestions are never applied without your confirmation. Only exercise names and recent performances are sent.':'Aucune suggestion n’est appliquée sans ta confirmation. Seuls les noms d’exercices et les performances récentes sont envoyés.','Try: “Generate an Upper/Lower program for next month”, “Replace lateral raises”, or “Analyse my progress”.':'Essaie : « Génère un programme Upper/Lower pour le mois prochain », « Remplace les élévations latérales » ou « Analyse ma progression ».','Thinking…':'Réflexion…','Ask your coach…':'Pose une question à ton coach…','Send':'Envoyer','Add as new program':'Ajouter comme nouveau programme','Dismiss':'Ignorer','Confirm':'Confirmer','Search by name or muscle':'Rechercher par nom ou muscle','Workout':'Séance','Rest':'Repos','Skip':'Passer','Rest timer':'Chrono de repos','Off':'Désactivé','Workout in progress':'Séance en cours','Resume workout':'Reprendre la séance','Discard':'Abandonner','Discard this workout in progress?':'Abandonner la séance en cours ?','Replace in your active program':'Remplacer dans ton programme actif','⚠ The free AI quota is used up for now. Try again later.':'⚠ Le quota gratuit de l’IA est épuisé pour le moment. Réessaie plus tard.',
 'Add at least one set.':'Ajoute au moins une série.','Enter an English name.':'Saisis un nom en anglais.','Enter the full https:// address.':'Saisis l’adresse complète en https://.','Exercise not found in your library.':'Exercice introuvable dans ta bibliothèque.','That exercise is not in the active program.':'Cet exercice n’est pas dans le programme actif.','This exercise already exists.':'Cet exercice existe déjà.','This name already exists.':'Ce nom existe déjà.','You need at least one program.':'Il faut au moins un programme.','Leave this workout? Saved exercises are kept.':'Quitter cette séance ? Les exercices enregistrés sont conservés.','Remove this exercise from the program? Your history is kept.':'Retirer cet exercice du programme ? Ton historique est conservé.','Name of the new program':'Nom du nouveau programme','New name':'Nouveau nom','Your tips, separated by |':'Tes conseils, séparés par |'};
 const RX=[[/^AI requests today: (\d+) \/ (\d+)$/,'Requêtes IA aujourd’hui : $1 / $2'],[/^⚠ Daily AI limit reached \((\d+)\/(\d+)\)\. It resets tomorrow\.$/,'⚠ Limite quotidienne de l’IA atteinte ($1/$2). Elle repart demain.'],
@@ -436,7 +530,7 @@ const _a=window.alert.bind(window),_c=window.confirm.bind(window),_p=window.prom
 window.alert=m=>_a(T2(m));window.confirm=m=>_c(T2(m));window.prompt=(m,d)=>_p(T2(m),d);
 /* ---------- Brouillon de séance ---------- */
 const DK='wt_draft',delDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
-function saveDraft(){try{if(W)localStorage.setItem(DK,JSON.stringify({W:{...W,ref:null,workoutId:W.workoutId||W.ref?.id||null},v:S.view&&S.view.ex?{ex:S.view.ex}:{ses:1},sets:S.sets,T:{acc:T.acc,st:T.st},dirty:S.dirty,uid:S.u&&S.u.uid,t:Date.now()}));else if(!S.draft&&S.u)delDraft()}catch(e){}}
+function saveDraft(){try{if(W&&!W.test)localStorage.setItem(DK,JSON.stringify({W:{...W,ref:null,workoutId:W.workoutId||W.ref?.id||null},v:S.view?.guided?{guided:1}:S.view?.ex?{ex:S.view.ex}:{ses:1},rt:RT,sets:S.sets,T:{acc:T.acc,st:T.st},dirty:S.dirty,uid:S.u&&S.u.uid,t:Date.now()}));else if(!W&&!S.draft&&S.u)delDraft()}catch(e){}}
 const draftCard=()=>{const d=S.draft;return `<div class="glass card"><h2>Workout in progress</h2><div class="s"><span>${d.W.cat=='upper'?'Upper body':'Lower body'}</span><span> · ${Object.keys(d.W.done||{}).length} saved</span></div><div style="height:10px"></div><div class="row"><button class="p" data-a="resume" style="flex:1">Resume workout</button><button data-a="disc" style="flex:1">Discard</button></div></div>`};
 addEventListener('input',()=>setTimeout(saveDraft,0));
 addEventListener('visibilitychange',()=>{if(document.hidden)saveDraft()});addEventListener('pagehide',saveDraft);
@@ -532,7 +626,7 @@ async function syncTodo(){
       :e.message==='task'?'Une tâche liée a été supprimée ou n’est plus hebdomadaire. Relie les tâches puis réessaie.'
       :'Synchronisation en attente. Vérifie ta connexion Internet puis réessaie.';
   }
-  finally{todoBusy=false;if(S.cfg)R();}
+  finally{todoBusy=false;if(S.cfg||S.summary&&!S.view&&S.tab==='train')R();}
 }
 function queueTodoWorkout(workout){
   const link=todoState();
@@ -595,7 +689,7 @@ addEventListener('pageshow',()=>void syncTodo());
 let RT=null,AC=null;const _r=LS('wt_rest');S.rest=_r===null?90:+_r;
 const unlock=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}};
 const beep=()=>{try{unlock();const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);o.frequency.value=880;g.gain.value=.15;o.start();o.stop(AC.currentTime+.4);navigator.vibrate&&navigator.vibrate(200)}catch(e){}};
-const topBar=()=>`<div class="row" style="justify-content:space-between;margin:-6px 0 10px"><span class="s">Workout</span><span class="s" id="gt">${fm(Date.now()-(W.t0||Date.now()))}</span></div>`+(RT?`<div class="glass card"><div class="row"><div style="flex:1"><div class="s">Rest</div><div class="tm" id="rt">${fm(Math.max(0,RT.end-Date.now())+999)}</div></div><button data-a="rt15">+15 s</button><button data-a="rtx">Skip</button></div></div>`:'');
+const topBar=()=>`<div class="session-clock"><span>${W.test?'Mode test · ':''}Temps de séance</span><strong id="gt">${fm(Date.now()-(W.t0||Date.now()))}</strong></div>`+(RT?`<div class="glass card"><div class="row"><div style="flex:1"><div class="s">Rest</div><div class="tm" id="rt">${fm(Math.max(0,RT.end-Date.now())+999)}</div></div><button data-a="rt15">+15 s</button><button data-a="rtx">Skip</button></div></div>`:'');
 async function loadUsage(){if(!S.aiUrl||S.usg)return;S.usg=1;try{const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({mode:'usage'})});if(r.ok){const d=await r.json();if(d.usage){S.usage=d.usage;if(S.tab=='ai'&&!S.view)R()}}}catch(e){}S.usg=0}
 const A={
  login:()=>signInWithEmailAndPassword(auth,$('#em').value,$('#pw').value).catch(e=>$('#er').textContent='Sign-in failed ('+e.code+')'),
@@ -612,7 +706,7 @@ const A={
   if(a.ok&&S.rest&&S.view.ex.every(id=>S.sets[id][i]?S.sets[id][i].ok:true))RT={end:Date.now()+S.rest*1000};R()},
  rt15:()=>{if(RT){RT.end+=15000;RT.b=0;R()}},rtx:()=>{RT=null;R()},
  rest:d=>{S.rest=+d.k;LS('wt_rest',String(S.rest));R()},
- resume:()=>{const d=S.draft;S.draft=null;W=d.W;S.sets=d.sets||{};T=d.T||{acc:0,st:null};S.dirty=d.dirty||0;S.last={};S.tab='train';const v=S.view=d.v;R();
+ resume:()=>{const d=S.draft;S.draft=null;W=d.W;S.sets=d.sets||{};T=d.T||{acc:0,st:null};S.dirty=d.dirty||0;S.last={};S.tab='train';const v=S.view=d.v;RT=d.rt||null;if(W.guided)W.guided.saving=false;R();
   if(v.ex)v.ex.forEach(async id=>{const L=(await logs(id))[0];if(S.view!==v)return;S.last[id]=L||null;R()})},
  disc:()=>{if(!confirm('Discard this workout in progress?'))return;S.draft=null;delDraft();R()},
  demo:d=>window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(exOf(d.id).nameEn+' exercise how to'),'_blank','noopener'),
@@ -630,7 +724,15 @@ const A={
  mv:d=>{const P=prog(),i=+d.i;if(i>0){[P[d.c][i-1],P[d.c][i]]=[P[d.c][i],P[d.c][i-1]];saveP(P,d.c);R()}},
  rm:d=>{if(!confirm('Remove this exercise from the program? Your history is kept.'))return;const P=prog(),c=d.c,n=+d.i,G=gz(P,c).slice();let a=0;for(let g=0;g<G.length;g++){if(n<a+G[g]){G[g]--;if(!G[g])G.splice(g,1);break}a+=G[g]}P[c].splice(n,1);P[c+'G']=G;saveP(P,c);R()},
  add:d=>{const v=$('#add-'+d.c).value;if(v){const P=prog(),G=gz(P,d.c).slice();G.push(1);P[d.c+'G']=G;P[d.c].push(v);saveP(P,d.c);R()}},
- start:d=>{W={cat:d.c,pid:prog().id,done:{},ref:null,made:false,t0:Date.now()};S.view={ses:1};R()},
+ start:d=>{
+  if(S.draft){alert('Reprends ou abandonne d’abord la séance en cours.');return;}
+  W={cat:d.c,pid:prog().id,done:{},ref:null,made:false,t0:Date.now(),test:d.test==='1'};
+  S.summary='';RT=null;moveTo(0);
+ },
+ 'guided-open':d=>{const block=+d.block;if(W.guided?.block===block){S.view={guided:1};R();}else if(!W.guided||confirm('Changer de bloc et abandonner la saisie en cours ?'))moveTo(block);},
+ 'guided-rest':()=>{pause();startRest();R();},
+ 'next-series':nextSeries,
+ 'undo-series':undoSeries,
  open:d=>{const ids=d.ids.split(',');S.last={};S.sets={};S.dirty=0;ids.forEach(id=>S.sets[id]=[exOf(id).type=='time'?{s:''}:{r:'',kg:''}]);T={acc:0,st:null};const v=S.view={ex:ids};R();
   ids.forEach(async id=>{const L=(await logs(id))[0];if(S.view!==v)return;S.last[id]=L||null;if(L&&!S.dirty)S.sets[id]=L.sets.map(s=>({...s}));if(!S.dirty)R()})},
  addset:d=>{S.dirty=1;const a=S.sets[d.x],l=a[a.length-1];a.push(l?{...l}:{r:'',kg:''});R()},
@@ -656,12 +758,12 @@ const A={
   if(S.ex.some(x=>x.id!=e.id&&x.nameEn.toLowerCase()==en.trim().toLowerCase()))return alert('This name already exists.');
   await updateDoc(doc(db,'exercises',e.id),{nameEn:en.trim(),nameFr:e.nameFr==e.nameEn?en.trim():e.nameFr});await load();R()},
  aiurl:async()=>{const v=$('#aiu').value.trim();if(!/^https:\/\//.test(v))return alert('Enter the full https:// address.');await setDoc(doc(db,'user_settings','main'),{aiUrl:v},{merge:true});S.aiUrl=v;R()},
- send:async()=>{const i=$('#ai-in'),t=i.value.trim();if(!t||S.busy)return;S.chat.push({r:'user',t});S.busy=1;R();
-  try{await loadSt();const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({context:aiCtx(),contents:S.chat.slice(-10).map(x=>({role:x.r=='user'?'user':'model',parts:[{text:x.t}]}))})});
-   if(!r.ok){let e={};try{e=await r.json()}catch(_){}if(e.usage)S.usage=e.usage;throw new Error(e.error=='limit'?'Daily AI limit reached ('+e.usage.used+'/'+e.usage.limit+'). It resets tomorrow.':r.status==429?'The free AI quota is used up for now. Try again later.':'The AI is unavailable ('+r.status+'). Your tracking still works.')}
+ send:async()=>{const i=$('#ai-in'),t=i?.value.trim();if(!t||S.busy)return;S.aiError='';S.aiRetry='';S.chat.push({r:'user',t});S.busy=1;R();
+  try{await loadSt(true);const tok=await auth.currentUser.getIdToken(),r=await fetch(S.aiUrl,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({context:aiCtx(),contents:S.chat.slice(-10).map(x=>({role:x.r=='user'?'user':'model',parts:[{text:x.t}]}))})});
+   if(!r.ok){let e={};try{e=await r.json()}catch(_){}if(e.usage)S.usage=e.usage;throw new Error(e.error=='limit'&&e.usage?'Daily AI limit reached ('+e.usage.used+'/'+e.usage.limit+'). It resets tomorrow.':r.status==429?'The free AI quota is used up for now. Try again later.':'The AI is unavailable ('+r.status+'). Your tracking still works.')}
    const d=await r.json();if(d.usage)S.usage=d.usage;let j;try{j=JSON.parse(d.text)}catch(e){j={reply:d.text}}
    S.chat.push({r:'ai',t:j.reply||'',p:j.program&&(j.program.upper||j.program.lower)?j.program:null,sw:j.swap&&j.swap.from&&j.swap.to?j.swap:null,nw:j.new||[]})}
-  catch(e){S.chat.push({r:'ai',t:'⚠ '+e.message})}
+  catch(e){S.chat.pop();S.aiError='⚠ '+(S.lang==='fr'?trs(e.message,{}):e.message);S.aiRetry=t;}
   S.busy=0;R();scrollTo(0,document.body.scrollHeight)},
  no:d=>{const m=S.chat[+d.i];m.p=null;m.sw=null;R()},
  okp:async d=>{const m=S.chat[+d.i],p=m.p,u=[],l=[],ug=[],lg=[];for(const[c,L,G]of[['upper',u,ug],['lower',l,lg]])for(const g of p[c]||[]){const gg=[].concat(g);for(const n of gg)L.push(await ensure(n,m.nw));G.push(gg.length)}
@@ -669,8 +771,15 @@ const A={
  oks:async d=>{const m=S.chat[+d.i],w=m.sw,P=prog(),f=exByName(w.from);if(!f)return alert('Exercise not found in your library.');const id=await ensure(w.to,m.nw);let ok=0;
   for(const c of['upper','lower']){const i=P[c].indexOf(f.id);if(i>=0){P[c][i]=id;await saveP(P,c);ok=1}}
   if(!ok)return alert('That exercise is not in the active program.');m.sw=null;R()},
- fin:()=>{queueTodoWorkout(W);W=null;RT=null;S.view=null;S.tab='train';R()},
- back:()=>{const v=S.view;if(v.ex)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;RT=null;S.view=null}R()},
+ fin:()=>{
+  if(W.guided?.saving)return;
+  const count=Object.keys(W.done).length;
+  if(W.guided&&!confirm('Terminer la séance sans enregistrer le bloc en cours ?'))return;
+  if(!W.test)queueTodoWorkout(W);
+  S.summary={count,duration:Date.now()-W.t0,test:W.test};
+  W=null;RT=null;S.view=null;S.tab='train';R();
+ },
+ back:()=>{const v=S.view;if(v.guided&&W.guided?.saving)return;if(v.ex||v.guided)S.view={ses:1};else if(v.hist)S.view=null;else{if(!confirm('Leave this workout? Saved exercises are kept.'))return;W=null;RT=null;S.view=null}R()},
  hist:async d=>{S.h=await logs(d.id);S.view={hist:d.id};R()},
  flt:d=>{S.f=d.k;R()},
  newex:async()=>{const en=$('#n-en').value.trim();if(!en)return alert('Enter an English name.');
@@ -678,8 +787,8 @@ const A={
   await setDoc(doc(col('exercises')),{nameEn:en,nameFr:en,type:$('#n-t').value,equipment:$('#n-e').value=='1'});await load();R();genTips()}
 };
 document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)A[b.dataset.a](b.dataset)});
-document.addEventListener('input',e=>{const d=e.target.dataset;if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList();tr()}});
-document.addEventListener('change',e=>{if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
+document.addEventListener('input',e=>{const d=e.target.dataset;if(d.guided&&W?.guided){W.guided.values[d.guided]=e.target.value;}if(d.f){S.dirty=1;S.sets[d.x][+d.i][d.f]=e.target.value}if(e.target.id=='q'){S.q=e.target.value;$('#list').innerHTML=exList();tr()}});
+document.addEventListener('change',e=>{if(e.target.id==='guided-rounds'&&W?.guided){const g=W.guided;g.rounds=Math.max(g.round+1,Math.min(30,Math.floor(+e.target.value)||g.rounds));e.target.value=g.rounds;saveDraft();}if(e.target.id=='ss'){S.sel=e.target.value;R()}if(e.target.id=='ps'){S.act=e.target.value;setDoc(doc(db,'user_settings','main'),{activeProgramId:S.act},{merge:true});R()}});
 document.addEventListener('keydown',e=>{if(e.key=='Enter'&&e.target.id=='ai-in')A.send()});
 /* ---------- Balayage entre onglets ---------- */
 let SW=null;const TABS=['train','ex','st','ai'];
